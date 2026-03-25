@@ -7,6 +7,8 @@
   /*************/
  /* CONSTANTS */
 /*************/
+// How much to remove from char to get int. ASCII(0) = decimal 49
+const int INT_ASCII=48;
 // Pin definitions
 const int RLED_PIN = A1;
 const int GLED_PIN = 2;
@@ -17,23 +19,13 @@ const int TEMP_PIN = A3;
 const int B = 4275;
 const long int R0 = 100000;
 const float VCC = 1023;
-// Temperatures:
-// No person detected
-const int MAX_TEMP = 30;
-const int MIN_TEMP = 25;
-const int MAX_TEMP_HEATER = 20;
-const int MIN_TEMP_HEATER = 15;
-// Person detected
-const int MAX_TEMP_PERS= 25;
-const int MIN_TEMP_PERS = 20;
-const int MAX_TEMP_HEATER_PERS= 10;
-const int MIN_TEMP_HEATER_PERS= 5;
 // Timeout definitions
-const int TIMEOUT_MIC = 100;
+const int TIMEOUT_MIC = 1000000;
 const int TIMEOUT_PIR = 3000;
-const int TIMEOUT_LCD = 5000;
+const int TIMEOUT_LCD = 10000;
 // Other constants
 const int RB_SIZE = 16;
+const int DISPLAY_REFRESH_TIME = 1000;
 
 //const int sound_threshold =;
 //const int sound_interval = ;
@@ -55,6 +47,17 @@ float heaterIntensity=0;
 int local_pdp=0;
 int local_mdp=0;
 int lcd_state=1;
+// Temperatures:
+// No person detected
+int max_temp_fan = 30;
+int min_temp_fan = 25;
+int max_temp_heater = 20;
+int min_temp_heater = 15;
+// Person detected
+int max_temp_fan_pers= 25;
+int min_temp_fan_pers= 20;
+int max_temp_heater_pers= 10;
+int min_temp_heater_pers= 5;
 
   /****************/
  /* DECLARATIONS */
@@ -165,23 +168,26 @@ void printLcd(){
     lcd.print((int)(local_mdp));
     lcd.setCursor(0,1);
     lcd.print("AC:");
-    lcd.print((int) (fanSpeed/255));
+    lcd.print((int) (fanSpeed/255*100));
     lcd.print("% HT:");
-    lcd.print((int)(heaterIntensity/255));
+    lcd.print((int)(heaterIntensity/255*100));
     lcd.print("%");
   }
   else{
     lcd.clear();
     lcd.setCursor(0,0);
     lcd.print("AC m:");
-    lcd.print(local_pdp || local_mdp ? MIN_TEMP_PERS : MIN_TEMP);
+    lcd.print(local_pdp || local_mdp ? min_temp_fan_pers : min_temp_fan);
     lcd.print(" M:");
-    lcd.print(local_pdp || local_mdp ? MAX_TEMP_PERS : MAX_TEMP);
+    lcd.print(local_pdp || local_mdp ? max_temp_fan_pers : max_temp_fan);
     lcd.setCursor(0,1);
     lcd.print("HT m:");
-    lcd.print(local_pdp || local_mdp ? MIN_TEMP_HEATER_PERS : MIN_TEMP_HEATER);
+    lcd.print(local_pdp || local_mdp ? min_temp_heater_pers : min_temp_heater);
     lcd.print(" M:");
-    lcd.print(local_pdp || local_mdp ?  MAX_TEMP_HEATER_PERS : MAX_TEMP_HEATER);
+    lcd.print(local_pdp || local_mdp ?  max_temp_heater_pers : max_temp_heater);
+    if(local_pdp||local_mdp){
+      lcd.print(" pers");
+    }
   }
 }
 
@@ -220,6 +226,17 @@ void setup() {
   ITimer1.setInterval(TIMEOUT_PIR * 1000 , timerDonePir);
   ITimer2.setInterval(TIMEOUT_MIC * 1000 , timerDoneMic);
   ITimer3.setInterval(TIMEOUT_LCD * 1000 , lcdChangeState);
+
+  //h
+  Serial.begin(9600);
+  while(!Serial){
+    Serial.println("Doesnt print");
+  }
+  Serial.println("Serial will change the 4 current active set points (if people are in the room, will chage the pers values)");
+  Serial.println("Format:");
+  Serial.println("/10 14 09 13/");
+  Serial.println("if no people detected: min_temp_fan =10, max_temp_fan=14, min_temp_heater=09, max_temp_heater=13");
+  Serial.println("if people detected: min_temp_fan_pers =10, max_temp_fan_pers=14, min_temp_heater_pers=09, max_temp_heater_pers=13");
 }
 
   /*********/
@@ -232,17 +249,17 @@ void loop() {
   temp = tempConverter(x);
   
   if(mic_detects_person || pir_detects_person){
-    fanSpeed = fanSpeedCalc(temp, (float) MIN_TEMP_PERS, (float) MAX_TEMP_PERS);
+    fanSpeed = fanSpeedCalc(temp, (float) min_temp_fan_pers, (float) max_temp_fan_pers);
   } else {
-    fanSpeed = fanSpeedCalc(temp, (float) MIN_TEMP, (float) MAX_TEMP);
+    fanSpeed = fanSpeedCalc(temp, (float) max_temp_fan, (float) max_temp_fan);
   }
   analogWrite(FAN_PIN, fanSpeed);
 
   // b. 
   if(mic_detects_person || pir_detects_person){
-    heaterIntensity = heaterIntensityCalc(temp, (float) MIN_TEMP_HEATER_PERS , (float) MAX_TEMP_HEATER_PERS);
+    heaterIntensity = heaterIntensityCalc(temp, (float) min_temp_heater_pers , (float) max_temp_heater_pers);
   } else {
-    heaterIntensity = heaterIntensityCalc(temp, (float) MIN_TEMP_HEATER , (float) MAX_TEMP_HEATER);
+    heaterIntensity = heaterIntensityCalc(temp, (float) min_temp_heater , (float) max_temp_heater);
   }
   analogWrite(RLED_PIN, heaterIntensity);
 
@@ -254,11 +271,34 @@ void loop() {
 
   // Lcd screen
   printLcd();
-  delay(500);;
+  delay(DISPLAY_REFRESH_TIME);
 }
 
 //Serial listener loop:
 void loop2(){
   //h.
   yield();
+  if(Serial.available()>0){
+    char entranceByte=Serial.read();
+    char charBytes[12];
+    if(entranceByte=='/'){
+      int i=0;
+      while((entranceByte=Serial.read())!='/' && i<12){
+        charBytes[i]=entranceByte;
+        i++;
+      }
+      if(mic_detects_person || pir_detects_person){
+        min_temp_fan_pers = ((int) charBytes[0]-INT_ASCII)*10+((int) charBytes[1]-INT_ASCII);
+        max_temp_fan_pers = ((int) charBytes[3]-INT_ASCII)*10+((int) charBytes[4]-INT_ASCII);
+        min_temp_heater_pers = ((int) charBytes[6]-INT_ASCII)*10+((int) charBytes[7]-INT_ASCII);
+        max_temp_heater_pers = ((int) charBytes[9]-INT_ASCII)*10+((int) charBytes[10]-INT_ASCII);
+      }
+      else{
+        min_temp_fan = ((int) charBytes[0]-INT_ASCII)*10+((int) charBytes[1]-INT_ASCII);
+        max_temp_fan = ((int) charBytes[3]-INT_ASCII)*10+((int) charBytes[4]-INT_ASCII);
+        min_temp_heater = ((int) charBytes[6]-INT_ASCII)*10+((int) charBytes[7]-INT_ASCII);
+        max_temp_heater = ((int) charBytes[9]-INT_ASCII)*10+((int) charBytes[10]-INT_ASCII);
+      } 
+    }
+  }
 }

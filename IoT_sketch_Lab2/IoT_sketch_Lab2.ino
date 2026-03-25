@@ -77,7 +77,7 @@ MBED_RPI_PICO_Timer ITimer3(2);
 void onPDMdata(){
   // 
   int bytesAvailable = PDM.available();
-  
+
   PDM.read(sampleBuffer, bytesAvailable);
   samplesRead = bytesAvailable / 2;
 
@@ -122,14 +122,12 @@ void foundPresencePir(){
 int heaterIntensityCalc(float temp, float tmin, float tmax){
   if(temp < tmin) return 255;
   if(temp > tmax) return 0; 
-
   return (int) (255.0 * (1.0 - ((temp - tmin) / (tmax - tmin))));
 }
 
 int fanSpeedCalc(float temp, float tmin, float tmax){
   if (temp < tmin) return 0;
   if (temp > tmax) return 255; 
-
   return (int) (255.0 * (temp - tmin) / (tmax - tmin));
 }
 
@@ -150,6 +148,10 @@ void lcdChangeState(uint alarm_num){
   lcd_state =  !lcd_state;
   ITimer3.setInterval(TIMEOUT_LCD * 1000 , lcdChangeState); // Redundant? ISR already set, resetting is not useful?
   TIMER_ISR_END(alarm_num);
+}
+
+void changeSetPoint(){
+  
 }
 
 void printLcd(){
@@ -252,7 +254,7 @@ void loop() {
 
   // Lcd screen
   printLcd();
-  yield();;
+  delay(500);;
 }
 
 //Serial listener loop:

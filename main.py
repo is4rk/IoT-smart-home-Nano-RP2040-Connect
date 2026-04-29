@@ -1,5 +1,6 @@
 import cherrypy
-from EventLogger import EventLogger 
+from constants import PORT_NUMBER, HOST_NAME
+from EventLog import EventLog
 
 if __name__ == "__main__":
     conf = {
@@ -10,13 +11,13 @@ if __name__ == "__main__":
     }
 
     # service mounting section
-    cherrypy.tree.mount(EventLogger(), '/string', conf)
+    cherrypy.tree.mount(EventLog(), '/log', conf)
     
     # host config
     # default is http://127.0.0.1:8080/
 
-    # cherrypy.config.update({'server.socket_host':'0.0.0.0'})
-    # cherrypy.config.update({'server.socket_port': 9090})
+    cherrypy.config.update({'server.socket_host': HOST_NAME})
+    cherrypy.config.update({'server.socket_port': PORT_NUMBER})
     
     # start
     cherrypy.engine.start()

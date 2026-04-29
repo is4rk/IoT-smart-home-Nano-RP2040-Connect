@@ -1,0 +1,347 @@
+{
+  "project": "Smart Home REST Exercises 01-04",
+  "rooms": ["living_room", "kitchen", "bedroom"],
+  "sensor_types": ["temperature", "humidity", "motion"],
+  "actuators": ["thermostat", "lights", "blinds"],
+  "sensor_units": ["°C", "%RH", "bool"],
+  "test_cases": {
+    "exercise_01": [
+      {
+        "id": "01-01",
+        "method": "GET",
+        "endpoint": "/sensors?room=living_room&type=temperature",
+        "expected_status": 200,
+        "expected": "SenML JSON array with one temperature reading in °C",
+        "notes": "Valid room and sensor type"
+      },
+      {
+        "id": "01-02",
+        "method": "GET",
+        "endpoint": "/sensors?room=kitchen&type=humidity",
+        "expected_status": 200,
+        "expected": "SenML JSON array with one humidity reading in %RH",
+        "notes": "Valid room and sensor type"
+      },
+      {
+        "id": "01-03",
+        "method": "GET",
+        "endpoint": "/sensors?room=bedroom&type=motion",
+        "expected_status": 200,
+        "expected": "SenML JSON array with one motion reading as bool",
+        "notes": "Valid room and sensor type"
+      },
+      {
+        "id": "01-04",
+        "method": "GET",
+        "endpoint": "/sensors?room=garage&type=temperature",
+        "expected_status": 404,
+        "expected": "{\"error\": \"room not found\", \"available_rooms\": [...]}",
+        "notes": "Unknown room"
+      },
+      {
+        "id": "01-05",
+        "method": "GET",
+        "endpoint": "/sensors?room=kitchen&type=pressure",
+        "expected_status": 400,
+        "expected": "{\"error\": \"unknown sensor type\", \"valid_types\": [...]}",
+        "notes": "Unknown sensor type"
+      },
+      {
+        "id": "01-06",
+        "method": "GET",
+        "endpoint": "/sensors?room=living_room",
+        "expected_status": 400,
+        "expected": "Validation error for missing type parameter",
+        "notes": "Missing sensor type"
+      }
+    ],
+    "exercise_02": [
+      {
+        "id": "02-01",
+        "method": "GET",
+        "endpoint": "/sensors/living_room/temperature",
+        "expected_status": 200,
+        "expected": "SenML JSON array with base-name including room identifier",
+        "notes": "Single sensor reading"
+      },
+      {
+        "id": "02-02",
+        "method": "GET",
+        "endpoint": "/sensors/kitchen",
+        "expected_status": 200,
+        "expected": "SenML JSON array with all sensors in kitchen",
+        "notes": "Room-level endpoint"
+      },
+      {
+        "id": "02-03",
+        "method": "GET",
+        "endpoint": "/sensors",
+        "expected_status": 200,
+        "expected": "SenML JSON array with all rooms and sensors",
+        "notes": "Collection endpoint"
+      },
+      {
+        "id": "02-04",
+        "method": "GET",
+        "endpoint": "/sensors/garage/temperature",
+        "expected_status": 404,
+        "expected": "{\"error\": \"room not found\", \"available_rooms\": [...]}",
+        "notes": "Unknown room in URI"
+      },
+      {
+        "id": "02-05",
+        "method": "GET",
+        "endpoint": "/sensors/living_room/pressure",
+        "expected_status": 400,
+        "expected": "{\"error\": \"unknown sensor type\", \"valid_types\": [...]}",
+        "notes": "Unknown sensor type in URI"
+      },
+      {
+        "id": "02-06",
+        "method": "GET",
+        "endpoint": "/sensors/living_room/temperature/extra",
+        "expected_status": 400,
+        "expected": "Invalid URI shape",
+        "notes": "Unexpected extra path segment"
+      }
+    ],
+    "exercise_03": [
+      {
+        "id": "03-01",
+        "method": "PUT",
+        "endpoint": "/actuators/living_room/thermostat",
+        "body": {
+          "bn": "http://127.0.0.1:9090/actuators/living_room/thermostat",
+          "bt": 1777420800.125,
+          "e": [
+            {
+              "n": "setpoint",
+              "u": "°C",
+              "v": 21.5
+            }
+          ]
+        },
+        "expected_status": 200,
+        "expected": "SenML state update stored in memory",
+        "notes": "Valid thermostat command"
+      },
+      {
+        "id": "03-02",
+        "method": "GET",
+        "endpoint": "/actuators/living_room/thermostat",
+        "expected_status": 200,
+        "expected": "Current thermostat state in SenML format",
+        "notes": "Read back stored state"
+      },
+      {
+        "id": "03-03",
+        "method": "PUT",
+        "endpoint": "/actuators/kitchen/lights",
+        "body": {
+          "bn": "http://127.0.0.1:9090/actuators/kitchen/lights",
+          "bt": 1777420801.125,
+          "e": [
+            {
+              "n": "on",
+              "u": null,
+              "bv": true
+            }
+          ]
+        },
+        "expected_status": 200,
+        "expected": "Lights state updated",
+        "notes": "Boolean actuator command"
+      },
+      {
+        "id": "03-04",
+        "method": "PUT",
+          "bv": true
+        "body": {
+          "bn": "http://127.0.0.1:9090/actuators/bedroom/blinds",
+          "bt": 1777420802.125,
+          "e": [
+            {
+              "n": "position",
+              "u": "%",
+              "v": 75
+            }
+          ]
+        },
+        "expected_status": 200,
+        "expected": "Blinds position updated",
+        "notes": "Position actuator command"
+      },
+      {
+        "id": "03-05",
+        "method": "PUT",
+        "endpoint": "/actuators/living_room/thermostat",
+        "body": {
+          "bn": "http://127.0.0.1:9090/actuators/living_room/thermostat",
+          "bt": 1777420803.125,
+          "e": [
+            {
+              "n": "setpoint",
+              "u": "°C",
+              "v": 8
+            }
+          ]
+        },
+        "expected_status": 400,
+        "expected": "Thermostat setpoint out of range",
+        "notes": "Below 10C"
+      },
+      {
+        "id": "03-06",
+        "method": "PUT",
+        "endpoint": "/actuators/living_room/lights",
+        "body": "malformed SenML body",
+        "expected_status": 422,
+        "expected": "Unprocessable Entity",
+        "notes": "Malformed SenML payload"
+      },
+      {
+        "id": "03-07",
+        "method": "GET",
+        "endpoint": "/actuators/garage/lights",
+        "expected_status": 404,
+        "expected": "Unknown room or device",
+        "notes": "Invalid resource"
+      }
+    ],
+    "exercise_04": [
+      {
+        "id": "04-01",
+        "method": "POST",
+        "endpoint": "/log",
+        "body": [
+          {
+            "bn": "http://127.0.0.1:9090/log/living_room/sensor0",
+            "e": [
+              {
+                "n": "temperature",
+                "u": "Cel",
+                "v": 23.5
+              }
+            ]
+          },
+          {
+            "bn": "http://127.0.0.1:9090/log/living_room/sensor0",
+            "e": [
+              {
+                "n": "humidity",
+                "u": "%RH",
+                "v": 45.2
+              }
+            ]
+          }
+        ],
+        "expected_status": 200,
+        "expected": "Log entries appended and server-side bt/log id assigned",
+        "notes": "Append one or more SenML records"
+      },
+      {
+        "id": "04-02",
+        "method": "GET",
+        "endpoint": "/log",
+        "expected_status": 200,
+        "expected": "Full log as SenML JSON array",
+        "notes": "Read complete log"
+      },
+      {
+        "id": "04-03",
+        "method": "GET",
+        "endpoint": "/log?room=living_room",
+        "expected_status": 200,
+        "expected": "Log entries whose bn matches the room prefix",
+        "notes": "Filter by room"
+      },
+      {
+        "id": "04-04",
+        "method": "GET",
+        "endpoint": "/log?since=1777420810.0",
+        "expected_status": 200,
+        "expected": "Log entries with bt >= since",
+        "notes": "Filter by epoch lower bound"
+      },
+      {
+        "id": "04-05",
+        "method": "GET",
+        "endpoint": "/log?room=kitchen&since=1777420815.0",
+        "expected_status": 200,
+        "expected": "Kitchen log entries from the requested epoch onward",
+        "notes": "Combined filters"
+      },
+      {
+        "id": "04-06",
+        "method": "GET",
+        "endpoint": "/log/living_room",
+        "expected_status": 200,
+        "expected": "Log entries for a single room",
+        "notes": "Path-based room filter"
+      },
+      {
+        "id": "04-07",
+        "method": "DELETE",
+        "endpoint": "/log?before=1777420810.0",
+        "expected_status": 200,
+        "expected": "Count of deleted entries",
+        "notes": "Purge older log entries"
+      },
+      {
+        "id": "04-08",
+        "method": "DELETE",
+        "endpoint": "/log?before=1777420000.0",
+        "expected_status": 200,
+        "expected": "0 deleted entries when nothing matches",
+        "notes": "No-op purge"
+      }
+    ]
+  },
+  "payload_examples": {
+    "sensor_reading": {
+      "bn": "http://127.0.0.1:9090/log/living_room/sensor0",
+      "bt": 1777420800.125,
+      "e": [
+        {
+          "n": "temperature",
+          "u": "°C",
+          "t": 0.25,
+          "v": 23.5
+        }
+      ]
+    },
+    "thermostat_command": {
+      "bn": "http://127.0.0.1:9090/actuators/living_room/thermostat",
+      "bt": 1777420800.125,
+      "e": [
+        {
+          "n": "setpoint",
+          "u": "°C",
+          "v": 21.5
+        }
+      ]
+    },
+    "lights_command": {
+      "bn": "http://127.0.0.1:9090/actuators/kitchen/lights",
+      "bt": 1777420801.125,
+      "e": [
+        {
+          "n": "on",
+          "u": null,
+          "bv": true
+        }
+      ]
+    },
+    "blinds_command": {
+      "bn": "http://127.0.0.1:9090/actuators/bedroom/blinds",
+      "bt": 1777420802.125,
+      "e": [
+        {
+          "n": "position",
+          "u": "%",
+          "v": 75
+        }
+      ]
+    }
+  }
+}

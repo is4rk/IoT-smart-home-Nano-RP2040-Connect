@@ -1,0 +1,482 @@
+[
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor0",
+    "bt": 1777420800.125,
+    "e": [
+      {
+        "n": "temperature",
+        "u": "°C",
+        "t": 0.25,
+        "v": 23.5
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor0",
+    "bt": 1777420801.125,
+    "e": [
+      {
+        "n": "humidity",
+        "u": "%RH",
+        "t": 0.25,
+        "v": 45.2
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor0",
+    "bt": 1777420802.125,
+    "e": [
+      {
+        "n": "motion",
+        "u": "bool",
+        "t": 0.25,
+        "bv": true
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor0",
+    "bt": 1777420803.125,
+    "e": [
+      {
+        "n": "temperature",
+        "u": "°C",
+        "t": 0.25,
+        "v": 23.8
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor0",
+    "bt": 1777420804.125,
+    "e": [
+      {
+        "n": "humidity",
+        "u": "%RH",
+        "t": 0.25,
+        "v": 46.0
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor0",
+    "bt": 1777420805.125,
+    "e": [
+      {
+        "n": "motion",
+        "u": "bool",
+        "t": 0.25,
+        "bv": false
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor0",
+    "bt": 1777420806.125,
+    "e": [
+      {
+        "n": "temperature",
+        "u": "°C",
+        "t": 0.25,
+        "v": 23.6
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor0",
+    "bt": 1777420807.125,
+    "e": [
+      {
+        "n": "motion",
+        "u": "bool",
+        "t": 0.25,
+        "bv": true
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor0",
+    "bt": 1777420808.125,
+    "e": [
+      {
+        "n": "temperature",
+        "u": "°C",
+        "t": 0.25,
+        "v": 23.4
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor0",
+    "bt": 1777420809.125,
+    "e": [
+      {
+        "n": "motion",
+        "u": "bool",
+        "t": 0.25,
+        "bv": false
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor1",
+    "bt": 1777420810.125,
+    "e": [
+      {
+        "n": "temperature",
+        "u": "°C",
+        "t": 0.25,
+        "v": 24.0
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor1",
+    "bt": 1777420811.125,
+    "e": [
+      {
+        "n": "humidity",
+        "u": "%RH",
+        "t": 0.25,
+        "v": 45.0
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor1",
+    "bt": 1777420812.125,
+    "e": [
+      {
+        "n": "motion",
+        "u": "bool",
+        "t": 0.25,
+        "bv": false
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor1",
+    "bt": 1777420813.125,
+    "e": [
+      {
+        "n": "temperature",
+        "u": "°C",
+        "t": 0.25,
+        "v": 24.2
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor1",
+    "bt": 1777420814.125,
+    "e": [
+      {
+        "n": "humidity",
+        "u": "%RH",
+        "t": 0.25,
+        "v": 45.3
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor1",
+    "bt": 1777420815.125,
+    "e": [
+      {
+        "n": "motion",
+        "u": "bool",
+        "t": 0.25,
+        "bv": true
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor1",
+    "bt": 1777420816.125,
+    "e": [
+      {
+        "n": "temperature",
+        "u": "°C",
+        "t": 0.25,
+        "v": 23.9
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor1",
+    "bt": 1777420817.125,
+    "e": [
+      {
+        "n": "humidity",
+        "u": "%RH",
+        "t": 0.25,
+        "v": 44.7
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor1",
+    "bt": 1777420818.125,
+    "e": [
+      {
+        "n": "motion",
+        "u": "bool",
+        "t": 0.25,
+        "bv": false
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/living_room/sensor1",
+    "bt": 1777420819.125,
+    "e": [
+      {
+        "n": "temperature",
+        "u": "°C",
+        "t": 0.25,
+        "v": 23.7
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/kitchen/sensor0",
+    "bt": 1777420820.125,
+    "e": [
+      {
+        "n": "temperature",
+        "u": "°C",
+        "t": 0.25,
+        "v": 24.1
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/kitchen/sensor0",
+    "bt": 1777420821.125,
+    "e": [
+      {
+        "n": "humidity",
+        "u": "%RH",
+        "t": 0.25,
+        "v": 46.4
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/kitchen/sensor0",
+    "bt": 1777420822.125,
+    "e": [
+      {
+        "n": "motion",
+        "u": "bool",
+        "t": 0.25,
+        "bv": true
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/kitchen/sensor0",
+    "bt": 1777420823.125,
+    "e": [
+      {
+        "n": "humidity",
+        "u": "%RH",
+        "t": 0.25,
+        "v": 46.6
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/kitchen/sensor0",
+    "bt": 1777420824.125,
+    "e": [
+      {
+        "n": "temperature",
+        "u": "°C",
+        "t": 0.25,
+        "v": 24.3
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/kitchen/sensor0",
+    "bt": 1777420825.125,
+    "e": [
+      {
+        "n": "humidity",
+        "u": "%RH",
+        "t": 0.25,
+        "v": 46.8
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/kitchen/sensor0",
+    "bt": 1777420826.125,
+    "e": [
+      {
+        "n": "motion",
+        "u": "bool",
+        "t": 0.25,
+        "bv": false
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/kitchen/sensor0",
+    "bt": 1777420827.125,
+    "e": [
+      {
+        "n": "humidity",
+        "u": "%RH",
+        "t": 0.25,
+        "v": 47.0
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/kitchen/sensor0",
+    "bt": 1777420828.125,
+    "e": [
+      {
+        "n": "temperature",
+        "u": "°C",
+        "t": 0.25,
+        "v": 24.6
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/kitchen/sensor0",
+    "bt": 1777420829.125,
+    "e": [
+      {
+        "n": "humidity",
+        "u": "%RH",
+        "t": 0.25,
+        "v": 47.2
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/bedroom/sensor1",
+    "bt": 1777420830.125,
+    "e": [
+      {
+        "n": "temperature",
+        "u": "°C",
+        "t": 0.25,
+        "v": 23.1
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/bedroom/sensor1",
+    "bt": 1777420831.125,
+    "e": [
+      {
+        "n": "humidity",
+        "u": "%RH",
+        "t": 0.25,
+        "v": 44.8
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/bedroom/sensor1",
+    "bt": 1777420832.125,
+    "e": [
+      {
+        "n": "motion",
+        "u": "bool",
+        "t": 0.25,
+        "bv": true
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/bedroom/sensor1",
+    "bt": 1777420833.125,
+    "e": [
+      {
+        "n": "temperature",
+        "u": "°C",
+        "t": 0.25,
+        "v": 23.3
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/bedroom/sensor1",
+    "bt": 1777420834.125,
+    "e": [
+      {
+        "n": "humidity",
+        "u": "%RH",
+        "t": 0.25,
+        "v": 45.0
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/bedroom/sensor1",
+    "bt": 1777420835.125,
+    "e": [
+      {
+        "n": "motion",
+        "u": "bool",
+        "t": 0.25,
+        "bv": false
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/bedroom/sensor1",
+    "bt": 1777420836.125,
+    "e": [
+      {
+        "n": "temperature",
+        "u": "°C",
+        "t": 0.25,
+        "v": 23.4
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/bedroom/sensor1",
+    "bt": 1777420837.125,
+    "e": [
+      {
+        "n": "humidity",
+        "u": "%RH",
+        "t": 0.25,
+        "v": 45.3
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/bedroom/sensor1",
+    "bt": 1777420838.125,
+    "e": [
+      {
+        "n": "motion",
+        "u": "bool",
+        "t": 0.25,
+        "bv": true
+      }
+    ]
+  },
+  {
+    "bn": "http://127.0.0.1:9090/log/bedroom/sensor1",
+    "bt": 1777420839.125,
+    "e": [
+      {
+        "n": "temperature",
+        "u": "°C",
+        "t": 0.25,
+        "v": 23.2
+      }
+    ]
+  }
+]

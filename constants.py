@@ -3,3 +3,4 @@ PORT_NUMBER = 9090
 rooms = ["living_room", "kitchen", "bedroom"]
 sensors = ["temperature", "humidity", "motion"]
 units = ["Celsius", "%RH", "bool"]
+actuators = ["thermostat", "lights", "blinds"]

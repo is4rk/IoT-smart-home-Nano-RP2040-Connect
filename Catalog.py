@@ -5,7 +5,9 @@ import threading
 class Catalog:
     def __init__(self):
         threading.Thread(target=self._cleanup_loop, daemon=True).start()
-        cat_dict=json.loads()  
+        cat_dict=json.loads()
+        
+        json_file_name="catalog.json"
     def _cleanup_loop(self):
         pass
     def GET(self, *path, **query):

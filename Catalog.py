@@ -14,7 +14,6 @@ class Catalog:
         pass
     def PUT(self, *path, **query):
         pass
-    def DELTE(self, *path, **query):
+    def DELETE(self, *path, **query):
         pass
-    
     

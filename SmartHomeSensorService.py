@@ -31,7 +31,6 @@ class SmartHomeSensorService():
 
 
     def GET(self, *path, **query):
-
         # /sensor/<room>/<type>
         if(len(path) != 2):
              raise cherrypy.HTTPError(404, "len path invalid") 
@@ -96,8 +95,6 @@ class SmartHomeSensorService():
             raise cherrypy.HTTPError(404, "invalid path") 
             
     def POST(self, *path, **query):
-                
-        
         # type in actuators
         if(len(path) == 2 and path[0] in rooms and path[1] in actuators):
                 body = cherrypy.request.body.read()

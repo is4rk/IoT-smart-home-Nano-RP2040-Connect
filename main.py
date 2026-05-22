@@ -1,6 +1,7 @@
 import cherrypy
 from constants import PORT_NUMBER, HOST_NAME
 from EventLog import EventLog
+from Catalog import Catalog
 # from SmartHomeSensorService import SmartHomeSensorService
 
 if __name__ == "__main__":
@@ -13,6 +14,7 @@ if __name__ == "__main__":
 
     # service mounting section
     cherrypy.tree.mount(EventLog(), '/log', conf)
+    cherrypy.tree.mount(Catalog(), "/Catalog", conf)
     # cherrypy.tree.mount(SmartHomeSensorService(), '/sensor', conf)
     
     # host config

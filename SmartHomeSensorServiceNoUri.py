@@ -4,7 +4,7 @@ import time
 import random
 from constants import *
 
-class SmartHomeSensorServiceNoUri(object):
+class SmartHomeSensorServiceNoUri():
     exposed = True
     
     def GET(self, **query):

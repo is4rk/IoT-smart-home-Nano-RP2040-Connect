@@ -36,7 +36,7 @@ void process(WiFiClient client){
       printResponse(client, 404,"");
     }
   }
-  else if(url.startsWith("/temperature/")){
+  else if(url.startsWith("/temperature")){
     int a = analogRead(TEMP_PIN);
     temp = tempConverter(a); 
     printResponse(client, 200, senMlEncode("temperature", temp));

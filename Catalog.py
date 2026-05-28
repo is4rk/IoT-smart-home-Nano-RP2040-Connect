@@ -20,6 +20,9 @@ class Catalog:
             for id, device in list(data["devices"].items()):
                 if now - device["time"] > 120:
                     del data["devices"][id]
+            for id, service in list(data["services"].items()):
+                if now - service["time"] > 120:
+                    del data["services"][id]
             with open(self.json_file_name, "w") as f:
                 json.dump(data, f)
 
@@ -30,36 +33,43 @@ class Catalog:
 
     def POST(self, *path, **query):
         body = json.loads(cherrypy.request.body.read())
-        body["time"]=time.time()
+        elementType = "devices" if body["type"]==False else "services"
+        body["element"]["time"]=time.time()
         with self.lock:
             with open(self.json_file_name, "r") as f:
                 data = json.load(f)
-            data["devices"][body["id"]]=body
+            data[elementType][body["id"]]=body
             with open(self.json_file_name, "w") as f:
                 json.dump(data, f)
 
     def PUT(self, *path, **query):
         body = json.loads(cherrypy.request.body.read())
-        body["time"]=time.time()
-        id_to_update = body["id"]
+        elementType = "devices" if body["type"]==False else "services"
+        body["element"]["time"]=time.time()
+        id_to_update = body["element"]["id"]
         with self.lock:
             with open(self.json_file_name, "r") as f:
                 data = json.load(f)
-            data["devices"][id_to_update]=body
+            data[elementType][id_to_update]=body
         
         with open(self.json_file_name, "w") as f:
             json.dump(data, f)
 
     def DELETE(self, *path, **query): #to finish at home
         body = json.loads(cherrypy.request.body.read())
-        id_to_delete = body["id"]
+        elementType = "devices" if body["type"]==False else "services"
+        id_to_delete = body["element"]["id"]
         with self.lock:
             with open(self.json_file_name, "r") as f:
                 data = json.load(f)
-            del data["devices"][id_to_delete] 
+            del data[elementType][id_to_delete] 
             with open(self.json_file_name, "w") as f:
                 json.dump(data, f)
 
+# body = {
+#   "type": bool,
+#   "element": {...}
+# }
 
 
 # device = {
@@ -75,6 +85,21 @@ class Catalog:
 #     "time": time.time()
 # }
 
+
+# services = {
+#   "id": "service_001",
+#     "description": "Smart home device actuator",
+#     "endpoint": "TO DO",
+#     "mqtt": {
+#         "ip": "iot.eclipse.org",
+#         "port": 1883,
+#         "topic": "/tiot/group01/smartHome"
+#     },
+#     "resources": [TO DO],
+#     "time": time.time()
+# }
+
+# data:
 # {
 #   "broker": {...},
 #   "devices": {

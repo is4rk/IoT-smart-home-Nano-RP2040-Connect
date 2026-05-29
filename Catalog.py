@@ -30,13 +30,26 @@ class Catalog:
                 json.dump(data, f)
 
     def GET(self, *path, **query): # It handles HTTP requests to obtain catalog information
-        with self.lock:
-            with open(self.json_file_name, "r") as f:
-                return json.load(f)
-
+        with open(self.json_file_name, "r") as f:
+            catalog = json.load(f)
+        if len(path)==0:
+            return json.dump(catalog)
+        if len(path) == 1 and path[0]=="broker":
+            return json.dump(catalog.get("broker"))        
+        if len(path) == 1 and path[0] in ["devices", "sensors"]:
+            return json.dump(catalog.get(path[0]))
+        if len(path) == 2 and path[0] in ["devices", "sensors"]:
+            items = catalog.get(path[0], []) #gets all devices or sensors, if directory is not found returns empty list []
+            match = next((x for x in items if x["id"]==path[1]), None)
+            if match is None:
+                return cherrypy.HTTPError(404, f"{path[1]} not found")
+            return json.dumps(match)
+        raise cherrypy.HTTPError(400, "Invalid path")
+    
+    
     def POST(self, *path, **query): # It handles HTTP POST requests used to register a new device or service.
         body = json.loads(cherrypy.request.body.read()) # it reads the body (body structure at the bottom of the page)
-        elementType = "devices" if body["type"]=="device" else "services" # It check if it is a device or a service
+        elementType=path[0] # Determines the type thorugh the first element of path
         body["element"]["time"]=time.time() # update the time
         with self.lock:
             with open(self.json_file_name, "r") as f: # it loads on data the content of catalog.json
@@ -47,7 +60,7 @@ class Catalog:
 
     def PUT(self, *path, **query):  # It handles HTTP PUT requests used to update or refresh the time of an existing device/service registration.
         body = json.loads(cherrypy.request.body.read()) #it loads on body the body of the PUT request
-        elementType = "devices" if body["type"]=="device" else "services" #as in the POST, it check if it is a device or a service
+        elementType=path[0] #as in the POST
         body["element"]["time"]=time.time() #updating the time of device or service
         id_to_update = body["element"]["id"] #it extract the serivce/device's id to update
         with self.lock: # like the previous function, the following lines extract the catalog on a data, update the body antìd then load on the catalog the modifies
@@ -58,10 +71,11 @@ class Catalog:
             with open(self.json_file_name, "w") as f:
                 json.dump(data, f)
 
+    # TO DO: make body use path to delete
     def DELETE(self, *path, **query): # It handles HTTP DELETE requests used to remove a device or service from the Catalog
-        body = json.loads(cherrypy.request.body.read()) # extract the body
-        elementType = "devices" if body["type"]=="device" else "services" #check the type
-        id_to_delete = body["element"]["id"] # extract the id to delete
+        l=len(path)
+        elementType=path[0]
+        # id_to_delete = body["element"]["id"] # extract the id to delete
         with self.lock: #modifies the catalog firstly loading it on data, then deleting the id-entry, and at last overwriting all on the catalog
             with open(self.json_file_name, "r") as f: 
                 data = json.load(f)

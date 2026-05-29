@@ -63,7 +63,8 @@ class Catalog:
             return json.dumps(body) #returns the inserted body, with updated time stamp
             
     def PUT(self, *path, **query):  # It handles HTTP PUT requests used to update or refresh the time of an existing device/service registration.
-        body = json.loads(cherrypy.request.body.read()) #it loads on body the body of the PUT request
+        body = cherrypy.request.body.read()
+        body = json.loads(body) if body else None
         if len(path)!=2 or path[0] not in ["services", "devices"]:
             raise cherrypy.HTTPError(400, "Invalid path")
         with self.lock:

@@ -54,13 +54,11 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
     def on_connect(self, client, userdata, flags, rc): #as said, it will handles the action when the bridge connect to the broker
         print(f"[MQTT Catalog Bridge] Connected with result code {rc}")  # prints the connection result
 
-        self.client.subscribe(REGISTRATION_DEVICES_TOPIC, 0)
+        self.client.subscribe(REGISTRATION_DEVICES_TOPIC, 1)
         print(f"[MQTT Catalog Bridge] Subscribed to {REGISTRATION_DEVICES_TOPIC}")
         
-        self.client.subscribe(REGISTRATION_SERVICES_TOPIC, 0)
+        self.client.subscribe(REGISTRATION_SERVICES_TOPIC, 1)
         print(f"[MQTT Catalog Bridge] Subscribed to {REGISTRATION_SERVICES_TOPIC}")
-
-        
     
     
     def on_message(self, client, userdata, msg):

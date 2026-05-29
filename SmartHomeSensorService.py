@@ -2,7 +2,12 @@ import cherrypy
 import json
 import time
 import random
+from CatalogClient import CatalogClient
+import threading
 from constants import *
+
+
+CATALOG_URL="http://localhost:8080/catalog"
 
 def controlSenML(d):
     
@@ -20,6 +25,30 @@ def controlSenML(d):
 
 
 class SmartHomeSensorService():
+    def __init__(self):
+        self.catalog_client=CatalogClient(CATALOG_URL)
+        self.service_payload = {
+            "id": "Service001",
+            "description": "Smart Home Sensor Service",
+            "endpoint_url": "http://localhost:8081",
+            "resources": ["temperature", "humidity", "motion"]
+        }
+
+        try:
+            self.catalog_client.register_service(self.service_payload)
+        except Exception as e:
+            print(f"WARNING: could not register on startup: {e}")
+
+        self.refresh_thread = threading.Thread(target=self._refresh_loop, daemon=True)
+        self.refresh_thread.start()
+    
+    def _refresh_loop(self):
+        while True:
+            time.sleep(60)
+            try:
+                self.catalog_client.refresh_service("Service001")
+            except Exception as e:
+                print(f"WARNING: could not refresh registration, retrying next cycle: {e}")
 
     exposed = True
 

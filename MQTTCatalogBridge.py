@@ -32,7 +32,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
     def _mqtt_loop(self): # Initialize a loop is needed because  MQTT clients must continuously process datas
         self.client.connect(BROKER, PORT, keepalive=60)  # it connects the bridge to the MQTT broker
         self.client.loop_forever()  # Keeps the MQTT client alive and listening for messages
-        #FORSE DOVREI USARE UN LOOP START E STOP MA NON HO CAPITO COME
+        #TODO FORSE DOVREI USARE UN LOOP START E STOP MA NON HO CAPITO COME
 
     def start(self):
         threading.Thread(target=self._mqtt_loop, daemon=True).start()  # starts the MQTT loop in a background thread

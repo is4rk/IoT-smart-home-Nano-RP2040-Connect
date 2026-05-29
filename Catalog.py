@@ -15,8 +15,7 @@ class Catalog:
             self._cleanup() # it call the following function _cleanup()
     
     def _cleanup(self):
-        now = time.time() # It register in now the current time to check 
-        
+        now = time.time() # It register in now the current time to check  
         with self.lock:
             with open(self.json_file_name, "r") as f:
                 data=json.load(f) #load on data the catalog.json
@@ -36,13 +35,13 @@ class Catalog:
             return json.dump(catalog)
         if len(path) == 1 and path[0]=="broker":
             return json.dump(catalog.get("broker"))        
-        if len(path) == 1 and path[0] in ["devices", "sensors"]:
+        if len(path) == 1 and path[0] in ["devices", "services"]:
             return json.dump(catalog.get(path[0]))
-        if len(path) == 2 and path[0] in ["devices", "sensors"]:
-            items = catalog.get(path[0], []) #gets all devices or sensors, if directory is not found returns empty list []
+        if len(path) == 2 and path[0] in ["devices", "services"]:
+            items = catalog.get(path[0], []) #gets all devices or services, if directory is not found returns empty list []
             match = next((x for x in items if x["id"]==path[1]), None)
             if match is None:
-                return cherrypy.HTTPError(404, f"{path[1]} not found")
+                raise cherrypy.HTTPError(404, f"{path[1]} not found")
             return json.dumps(match)
         raise cherrypy.HTTPError(400, "Invalid path")
     
@@ -83,7 +82,7 @@ class Catalog:
                 json.dump(catalog, f)
             return json.dumps(match)
 
-    # TO DO: make body use path to delete
+    # TODO: make body use path to delete
     def DELETE(self, *path, **query): # It handles HTTP DELETE requests used to remove a device or service from the Catalog
         if len(path) ==0 or len(path)>2 or path[0] not in ["services", "devices"]:
                 raise cherrypy.HTTPError(400, "Invalid path")
@@ -134,13 +133,13 @@ class Catalog:
 # services = {
 #   "id": "service_001",
 #     "description": "Smart home device actuator",
-#     "endpoint": "TO DO",
+#     "endpoint": "TODO",
 #     "mqtt": {
 #         "ip": "iot.eclipse.org",
 #         "port": 1883,
 #         "topic": "/tiot/group01/smartHome"
 #     },
-#     "resources": [TO DO],
+#     "resources": [TODO],
 #     "time": time.time()
 # }
 

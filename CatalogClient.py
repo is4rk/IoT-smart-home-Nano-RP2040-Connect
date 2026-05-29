@@ -1,6 +1,6 @@
 import requests
 
-# TO DO: dobbiamo usare i path del url per dire se /device o /service, non un booleano e poi un dict
+# TODO: dobbiamo usare i path del url per dire se /device o /service, non un booleano e poi un dict
 class CatalogClient:
     def __init__(self, url):
         self.url = url
@@ -50,7 +50,7 @@ class CatalogClient:
         return response.json()
 
         
-    # TO DO: 
+    # TODO: 
     def refresh_device(self, id):
         url = self.catalog_url + "/services/" + id
         body = {

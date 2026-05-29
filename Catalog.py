@@ -73,6 +73,8 @@ class Catalog:
             items = catalog.get(path[0], [])
             match = next((x for x in items if x["id"]==path[1]), None)
             if match == None:
+                if body is None:
+                    raise cherrypy.HTTPError(404, f"{path[1]} not found")
                 body["time"]=time.time() #sets time to insertion time
                 catalog[path[0]].append(body) #appends to the catalog list, to then get converted
                 with open(self.json_file_name, "w") as f:

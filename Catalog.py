@@ -46,30 +46,43 @@ class Catalog:
             return json.dumps(match)
         raise cherrypy.HTTPError(400, "Invalid path")
     
-    
+
     def POST(self, *path, **query): # It handles HTTP POST requests used to register a new device or service.
         body = json.loads(cherrypy.request.body.read()) # it reads the body (body structure at the bottom of the page)
-        elementType=path[0] # Determines the type thorugh the first element of path
-        body["element"]["time"]=time.time() # update the time
+        if path[0] not in ["services", "devices"]:
+            raise cherrypy.HTTPError(400, "Invalid path")
         with self.lock:
             with open(self.json_file_name, "r") as f: # it loads on data the content of catalog.json
-                data = json.load(f)
-            data[elementType][body["element"]["id"]]=body # then update the id of the device or service
+                catalog = json.load(f)
+            items = catalog.get(path[0], [])
+            match = next((x for x in items if x["id"]==body["id"]), None) #iterates to see if an element with the given id already exists
+            if match is not None:
+                raise cherrypy.HTTPError(409, f"{body['id']} already exists")
+            body["time"]=time.time() #sets time to insertion time
+            catalog[path[0]].append(body) #appends to the catalog list, to then get converted
             with open(self.json_file_name, "w") as f:
-                json.dump(data, f) # upload the modified catalog
-
+                json.dump(catalog, f) #saves to catalog
+            return json.dumps(body) #returns the inserted body, with updated time stamp
+            
     def PUT(self, *path, **query):  # It handles HTTP PUT requests used to update or refresh the time of an existing device/service registration.
         body = json.loads(cherrypy.request.body.read()) #it loads on body the body of the PUT request
-        elementType=path[0] #as in the POST
-        body["element"]["time"]=time.time() #updating the time of device or service
-        id_to_update = body["element"]["id"] #it extract the serivce/device's id to update
-        with self.lock: # like the previous function, the following lines extract the catalog on a data, update the body antìd then load on the catalog the modifies
+        if len(path)!=2 or path[0] not in ["services", "devices"]:
+            raise cherrypy.HTTPError(400, "Invalid path")
+        with self.lock:
             with open(self.json_file_name, "r") as f:
-                data = json.load(f)
-            data[elementType][id_to_update]=body
-        
+                catalog = json.load(f)
+            items = catalog.get(path[0], [])
+            match = next((x for x in items if x["id"]==path[1]), None)
+            if match == None:
+                body["time"]=time.time() #sets time to insertion time
+                catalog[path[0]].append(body) #appends to the catalog list, to then get converted
+                with open(self.json_file_name, "w") as f:
+                    json.dump(catalog, f) #saves to catalog
+                return json.dumps(body)
+            match["time"] = time.time()
             with open(self.json_file_name, "w") as f:
-                json.dump(data, f)
+                json.dump(catalog, f)
+            return json.dumps(match)
 
     # TO DO: make body use path to delete
     def DELETE(self, *path, **query): # It handles HTTP DELETE requests used to remove a device or service from the Catalog
@@ -83,9 +96,18 @@ class Catalog:
             with open(self.json_file_name, "w") as f:
                 json.dump(data, f)
 
-# body = {
-#   "type": "device/service",
-#   "element": {...}
+# body: 
+# {
+#   "id": "device_001",
+#     "description": "Living room temperature sensor",
+#     "endpoint": "http://localhost:8080/sensor/temperature",
+#     "mqtt": {
+#         "ip": "iot.eclipse.org",
+#         "port": 1883,
+#         "topic": "/tiot/group01/temperature"
+#     },
+#     "resources": ["temperature", "humidity"],
+#     "time": time.time()
 # }
 
 
@@ -127,3 +149,36 @@ class Catalog:
 #     "service_001": {...}
 #   }
 # }
+
+
+
+
+# with open(self.json_file_name, "r") as f: 
+#                 catalog = json.load(f)
+# {
+#     "broker": {"ip": "iot.eclipse.org", "port": 1883},
+#     "devices": [
+#         {
+#             "id": "sensor_01",
+#             "description": "Living room temperature sensor",
+#             "endpoint_url": "http://192.168.1.10:8080",
+#             "mqtt": {"ip": "iot.eclipse.org", "port": 1883, "topic": "/tiot/group01/sensors/temp"},
+#             "resources": ["temperature"],
+#             "time": 1748000000.0
+#         }
+#     ],
+#     "services": []
+# }
+
+
+# items = catalog.get(path[0], [])
+# [
+#     {
+#         "id": "sensor_01",
+#         "description": "Living room temperature sensor",
+#         "endpoint_url": "http://192.168.1.10:8080",
+#         "mqtt": {"ip": "iot.eclipse.org", "port": 1883, "topic": "/tiot/group01/sensors/temp"},
+#         "resources": ["temperature"],
+#         "time": 1748000000.0
+#     }
+# ]

@@ -46,7 +46,6 @@ class Catalog:
             return json.dumps(match)
         raise cherrypy.HTTPError(400, "Invalid path")
     
-
     def POST(self, *path, **query): # It handles HTTP POST requests used to register a new device or service.
         body = json.loads(cherrypy.request.body.read()) # it reads the body (body structure at the bottom of the page)
         if path[0] not in ["services", "devices"]:
@@ -86,15 +85,22 @@ class Catalog:
 
     # TO DO: make body use path to delete
     def DELETE(self, *path, **query): # It handles HTTP DELETE requests used to remove a device or service from the Catalog
-        l=len(path)
-        elementType=path[0]
-        # id_to_delete = body["element"]["id"] # extract the id to delete
+        if len(path) ==0 or len(path)>2 or path[0] not in ["services", "devices"]:
+                raise cherrypy.HTTPError(400, "Invalid path")
         with self.lock: #modifies the catalog firstly loading it on data, then deleting the id-entry, and at last overwriting all on the catalog
             with open(self.json_file_name, "r") as f: 
-                data = json.load(f)
-            del data[elementType][id_to_delete] 
+                catalog = json.load(f)    
+            if len(path) ==2:
+                items = catalog.get(path[0], [])
+                match = next((x for x in items if x["id"]==path[1]), None)
+                if match is None:
+                    raise cherrypy.HTTPError(404, f"{path[1]} not found")
+                catalog[path[0]].remove(match)
+            catalog[path[0]]=[]
+                
             with open(self.json_file_name, "w") as f:
-                json.dump(data, f)
+                    json.dump(catalog, f)
+        return "Delete complete"
 
 # body: 
 # {

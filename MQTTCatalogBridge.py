@@ -2,9 +2,7 @@ import paho.mqtt.client as PahoMQTT
 import json
 import requests
 import time
-import cherrypy
-import threading
-import Catalog
+
 
 BROKER      = "iot.eclipse.org" # public broker that we have to use
 PORT        = 1883 # port to use to connect to the broker
@@ -18,13 +16,12 @@ ACK_SERVICES_TOPIC_BASE = f"{BASE_TOPIC}/catalog/services/ack"
 class MQTTCatalogBridge: # This class will allows that the Catalog to receive registrations through MQTT
     
 
-    def __init__(self, clientID, broker, port, notifier):
+    def __init__(self, clientID, broker, port):
         self.broker   = broker
         self.port     = port
-        self.notifier = notifier
         self.clientID = clientID
 
-        self.client = PahoMQTT.Client(clientID=f"catalog_bridge_{GROUP}") 
+        self.client = PahoMQTT.Client(clientID) 
         self.client.on_connect = self.on_connect  # sets the function called when the bridge connects to the broker
         self.client.on_message = self.on_message  # sets the function called when the bridge receives a message
 
@@ -39,7 +36,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
     """
    
     def start(self): # Initialize a loop is needed because  MQTT clients must continuously process datas
-        self.client.connect(BROKER, PORT, keepalive=60)  # it connects the bridge to the MQTT broker
+        self.client.connect(self.broker, self.port, keepalive=60)  # it connects the bridge to the MQTT broker
         self.client.loop_start()  # Keeps the MQTT client alive and listening for messages
         
     def stop(self):
@@ -47,9 +44,6 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
         self.client.unsubscribe(REGISTRATION_SERVICES_TOPIC)
         self.client.loop_stop()
         self.client.disconnect()
-
-    def startThread(self):
-        threading.Thread(target=self._mqtt_loop, daemon=True).start()  # starts the MQTT loop in a background thread
 
     """
         ==============
@@ -77,31 +71,26 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
         payload = json.loads(payload) #as a JSON; the payload has to have the same config of body in Catalog.py
         id = payload["id"]
         if "devices" in topic:
-            r = requests.post("/devices", payload) 
-            ack_topic = f"{ACK_DEVICES_TOPIC_BASE}/devices/{id}" 
-            client.publish(ack_topic, json.dumps({"result": "ok"}))
+            r = requests.post("http://localhost:9090/devices", json= payload) 
+            ack_topic = f"{ACK_DEVICES_TOPIC_BASE}/{id}" 
+            
         else:
-            r = requests.post("/services", payload)
-            ack_topic = f"{ACK_SERVICES_TOPIC_BASE}/services/{id}" 
+            r = requests.post("http://localhost:9090/services", json=payload)
+            ack_topic = f"{ACK_SERVICES_TOPIC_BASE}/{id}" 
+        
+        if r.status_code in [200, 201]:
             client.publish(ack_topic, json.dumps({"result": "ok"})) 
+        else:
+            client.publish(ack_topic, json.dumps({"result": "error"}))
+        
         
 if __name__ == '__main__':
 
-    mqtt_bridge = MQTTCatalogBridge()  # Creates the MQTT bridge connected to the same Catalog.
-    mqtt_bridge.start()  # Starts the MQTT bridge in background.
+    mqtt_bridge = MQTTCatalogBridge("catalog_bridge_group1", BROKER, PORT)  # Creates the MQTT bridge connected to the same Catalog
+    mqtt_bridge.start()  # Starts the MQTT bridge in background
 
-    conf = {
-        '/': {
-            'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
-            'tools.sessions.on': True,
-            'tools.response_headers.on': True,
-            'tools.response_headers.headers': [('Content-Type', 'application/json')]
-        }
-    }
-
-    cherrypy.tree.mount(catalog, '/', conf)  # it mounts the catalog REST developed 
-
-    cherrypy.config.update({'server.socket_port': 9090})
-    # TODO NON SO DOVE METTERE LO SOP
-    cherrypy.engine.start()
-    cherrypy.engine.block()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        mqtt_bridge.stop()

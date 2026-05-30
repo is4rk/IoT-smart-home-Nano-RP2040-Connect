@@ -16,6 +16,7 @@ QUERY_RESPONSE_TOPIC_BASE = f"{BASE_TOPIC}/catalog/devices/query/response"
 
 class DeviceMQTTClient:
     def __init__(self, clientID, broker, port):
+        #TODO remeber that broker is no longer universal, maybe make utils file
         self.broker   = broker
         self.port     = port
         self.clientID = clientID

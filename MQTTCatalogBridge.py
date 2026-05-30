@@ -4,6 +4,14 @@ import requests
 import time
 
 
+DEBUG = False
+
+
+def debug_print(message):
+    if DEBUG:
+        print(message)
+
+
 BROKER      = "iot.eclipse.org" # public broker that we have to use
 PORT        = 1883 # port to use to connect to the broker
 GROUP       = "group1" # group ID nececcary to distinguish the path among other groups (because of the broker is public)
@@ -64,19 +72,19 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
 
     """
     def on_connect(self, client, userdata, flags, rc): #as said, it will handles the action when the bridge connect to the broker
-        print(f"[MQTT Catalog Bridge] Connected with result code {rc}")  # prints the connection result
+        debug_print(f"[MQTT Catalog Bridge] Connected with result code {rc}")  # prints the connection result
 
         self.client.subscribe(REGISTRATION_DEVICES_TOPIC, 0)
-        print(f"[MQTT Catalog Bridge] Subscribed to {REGISTRATION_DEVICES_TOPIC}")
+        debug_print(f"[MQTT Catalog Bridge] Subscribed to {REGISTRATION_DEVICES_TOPIC}")
         
         self.client.subscribe(REGISTRATION_SERVICES_TOPIC, 0)
-        print(f"[MQTT Catalog Bridge] Subscribed to {REGISTRATION_SERVICES_TOPIC}")
+        debug_print(f"[MQTT Catalog Bridge] Subscribed to {REGISTRATION_SERVICES_TOPIC}")
 
         self.client.subscribe(QUERY_ALL_DEVICES_TOPIC, 0)
-        print(f"[MQTT Catalog Bridge] Subscribed to {QUERY_ALL_DEVICES_TOPIC}") 
+        debug_print(f"[MQTT Catalog Bridge] Subscribed to {QUERY_ALL_DEVICES_TOPIC}") 
 
         self.client.subscribe(f"{QUERY_DEVICE_BY_ID_TOPIC_BASE}/+", 0)
-        print(f"[MQTT Catalog Bridge] Subscribed to {QUERY_DEVICE_BY_ID_TOPIC_BASE}/+") 
+        debug_print(f"[MQTT Catalog Bridge] Subscribed to {QUERY_DEVICE_BY_ID_TOPIC_BASE}/+") 
 
     def on_message(self, client, userdata, msg):
         # if a client publishes something on the registration topic, the bridge will receive it in msg
@@ -87,7 +95,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
         try:
             payload = json.loads(msg.payload.decode("utf-8")) #the payload has to have the same config of body in Catalog.py
         except json.JSONDecodeError:
-            print("[MQTT Catalog Bridge] Invalid JSON received")
+            debug_print("[MQTT Catalog Bridge] Invalid JSON received")
             return 
         
         if topic == REGISTRATION_DEVICES_TOPIC:
@@ -104,13 +112,13 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
             self.handle_query_device_by_id(client, payload, device_id)
 
         else:
-            print(f"[MQTT Catalog Bridge] Unknown topic: {topic}")
+            debug_print(f"[MQTT Catalog Bridge] Unknown topic: {topic}")
         
     def handle_device_registration(self, client, payload):
         device_id = payload.get("id")
 
         if device_id is None:
-            print("[MQTT Catalog Bridge] Device registration without id")
+            debug_print("[MQTT Catalog Bridge] Device registration without id")
             return
 
         ack_topic = f"{ACK_DEVICES_TOPIC_BASE}/{device_id}"
@@ -146,7 +154,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
         service_id = payload.get("id")
 
         if service_id is None:
-            print("[MQTT Catalog Bridge] Service registration without id")
+            debug_print("[MQTT Catalog Bridge] Service registration without id")
             return
 
         ack_topic = f"{ACK_SERVICES_TOPIC_BASE}/{service_id}"
@@ -183,7 +191,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
         request_id = payload.get("request_id")
 
         if client_id is None:
-            print("[MQTT Catalog Bridge] Query all devices without client_id")
+            debug_print("[MQTT Catalog Bridge] Query all devices without client_id")
             return
 
         response_topic = f"{QUERY_RESPONSE_TOPIC_BASE}/{client_id}"
@@ -219,7 +227,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
         request_id = payload.get("request_id")
 
         if client_id is None:
-            print("[MQTT Catalog Bridge] Query device by ID without client_id")
+            debug_print("[MQTT Catalog Bridge] Query device by ID without client_id")
             return
 
         response_topic = f"{QUERY_RESPONSE_TOPIC_BASE}/{client_id}"

@@ -17,8 +17,6 @@ float temp = 0;
 char ssid[] = SECRET_SSID;
 char pass[] = SECRET_PASS;
 
-char ssid[] = "Iphone mio e non tuo";
-char pass[] = "638373829";
 // WiFi declarations:
 int status = WL_IDLE_STATUS;
 WiFiServer server(80); // Server open on port 80

@@ -7,7 +7,7 @@
 #define PORT_NUMB 9966
 
 // Pins:
-int GREEN_PIN = 2;
+const int GREEN_PIN = 2;
 const int TEMP_PIN = A1;
 
 // Server (pc) IP address:

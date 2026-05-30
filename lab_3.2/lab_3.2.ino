@@ -72,22 +72,6 @@ int POST(String payload){
   return client.responseStatusCode();
 }
 
-// GET HTTP request function via HttpClient
-// Using C++ references to return response body out of the function without using return
-int GET(String& response){
-  client.beginRequest();
-  // request: GET [host]:[port]/log
-  client.get("/log");
-  // GET: no body and related informations 
-  client.endRequest(); 
-  // Wait for status code
-  int status = client.responseStatusCode();
-  // Read response body (can't call responseBody() before status code)
-  response = client.responseBody();
-  // Return response status code
-  return status;
-}
-
 // Setup:
 void setup() {
   // Serial start:
@@ -120,13 +104,6 @@ void loop() {
   Serial.print("POST response code: ");
   Serial.println(POST(payload));
 
-  // Ask stored data on server with a HTTP GET request, then save the response
-  // body in a String
-  Serial.print("GET response code: ");
-  Serial.println(GET(response));
-  Serial.println("Response body: ");
-  Serial.println(response);
-  
   // Wait to not overload
   delay(2000);
 }

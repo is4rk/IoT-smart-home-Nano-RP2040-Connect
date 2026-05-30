@@ -47,7 +47,7 @@ class Catalog:
     
     def POST(self, *path, **query): # It handles HTTP POST requests used to register a new device or service.
         body = json.loads(cherrypy.request.body.read()) # it reads the body (body structure at the bottom of the page)
-        if path[0] not in ["services", "devices"]:
+        if path[0] not in ["services", "devices"] or len(path)>1:
             raise cherrypy.HTTPError(400, "Invalid path")
         with self.lock:
             with open(self.json_file_name, "r") as f: # it loads on data the content of catalog.json

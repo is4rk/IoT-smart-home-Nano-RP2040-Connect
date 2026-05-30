@@ -7,22 +7,21 @@
 #define PORT_NUMB 9966
 
 // Pins:
-const int GREEN_PIN = 2;
 const int TEMP_PIN = A1;
 
 // Server (pc) IP address:
 char server_address[] = HOST_NAME;
 int server_port = PORT_NUMB;
 
+// WiFi credentials:
+char ssid[] = SECRET_SSID;
+char pass[] = SECRET_PASS;
+
 // Temperature conversion constants:
 const int B = 4275;
 const long int R0 = 100000;
 const float VCC = 1023;
 float temp = 0;
-
-// WiFi credentials:
-char ssid[] = SECRET_SSID;
-char pass[] = SECRET_PASS;
 
 // WiFi declarations:
 int status = WL_IDLE_STATUS;
@@ -82,7 +81,6 @@ void setup() {
   pinMode(TEMP_PIN, INPUT);
   // WiFi connection start:
   while (status != WL_CONNECTED){
-    pinMode(GREEN_PIN, OUTPUT);
     Serial.println("Attempting to connect to SSID: ");
     Serial.println(ssid);
     status = WiFi.begin(ssid, pass);

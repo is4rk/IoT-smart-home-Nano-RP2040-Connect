@@ -14,8 +14,8 @@ if __name__ == "__main__":
 
     # service mounting section
     cherrypy.tree.mount(EventLog(), '/log', conf)
-    cherrypy.tree.mount(Catalog(), '/catalog', conf)
-    cherrypy.tree.mount(SmartHomeSensorService(), '/sensor', conf)
+    # cherrypy.tree.mount(Catalog(), '/catalog', conf)
+    # cherrypy.tree.mount(SmartHomeSensorService(), '/sensor', conf)
     
     # host config
     # default is http://127.0.0.1:8080/

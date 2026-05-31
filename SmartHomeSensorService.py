@@ -85,7 +85,7 @@ class SmartHomeSensorService():
                     {
                         "n":name,
                         "u": unit,
-                        (f"{"v" if value not in [True, False ] else "bv"}"): value
+                        ("v" if value not in [True, False] else "bv"): value
                     }
                 ]
             }
@@ -115,7 +115,7 @@ class SmartHomeSensorService():
                     {
                         "n":name,
                         "u": unit,
-                        (f"{"v" if value not in [True, False ] else "bv"}"): value
+                        ("v" if value not in [True, False] else "bv"): value
                     }
                 ]
             }   

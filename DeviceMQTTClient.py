@@ -2,10 +2,6 @@ import paho.mqtt.client as PahoMQTT
 import threading, time, uuid
 import random, json
 from constants import *
-BROKER      = "iot.eclipse.org" # public broker that we have to use
-PORT        = 1883 # port to use to connect to the broker
-GROUP       = "group1" # group ID nececcary to distinguish the path among other groups (because of the broker is public)
-BASE_TOPIC = f"/tiot/{GROUP}"
 
 
 class DeviceMQTTClient:
@@ -117,12 +113,12 @@ class DeviceMQTTClient:
             except json.JSONDecodeError:
                 print("[Device MQTT client] Invalid JSON received")
 
-if __name__ == "__main__":
-    device = DeviceMQTTClient("device_001", BROKER, PORT)
-    device.start()
+# if __name__ == "__main__":
+#     device = DeviceMQTTClient("device_001", BROKER, PORT)
+#     device.start()
     
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("[Device MQTT client] Exiting")
+#     try:
+#         while True:
+#             time.sleep(1)
+#     except KeyboardInterrupt:
+#         print("[Device MQTT client] Exiting")

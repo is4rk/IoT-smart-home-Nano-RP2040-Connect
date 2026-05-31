@@ -4,22 +4,15 @@ from time import time
 import requests, threading
 import paho.mqtt.client as PahoMQTT
 import CatalogClient 
-
+from constants import *
 #TODO: move these constants to a separate file 
 # define topics in a coherent way
-
-GROUP       = "group1" # group ID nececcary to distinguish the path among other groups (because of the broker is public)
-BASE_TOPIC = f"/tiot/{GROUP}"
 
 """
     =========
     TOPICS 
     =========
 """
-SENSOR_CONFIGURATION_BASE = f"{BASE_TOPIC}/configuration" #topic where the bridge will send the configuration to the sensor, an ID will be added at the end 
-ACK_DEVICES_TOPIC_BASE = f"{BASE_TOPIC}/catalog/devices/ack" 
-REGISTRATION_DEVICES_TOPIC = f"{BASE_TOPIC}/catalog/devices/registration"
-
 class TempSenseMQTT:
     def __init__(self,url,clientID):
         self.clientID = clientID

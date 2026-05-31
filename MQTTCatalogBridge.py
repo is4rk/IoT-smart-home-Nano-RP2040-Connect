@@ -2,7 +2,7 @@ import paho.mqtt.client as PahoMQTT
 import json
 import requests
 import time
-
+from constants import *
 
 DEBUG = False
 
@@ -10,25 +10,6 @@ DEBUG = False
 def debug_print(message):
     if DEBUG:
         print(message)
-
-GROUP       = "group1" # group ID nececcary to distinguish the path among other groups (because of the broker is public)
-BASE_TOPIC = f"/tiot/{GROUP}"
-
-"""
-    =========
-    TOPICS 
-    =========
-"""
-REGISTRATION_DEVICES_TOPIC = f"{BASE_TOPIC}/catalog/devices/registration"  # Topic where devices publish their registrations; the bridge will subscribe to it and will handles the communication with the catalog
-REGISTRATION_SERVICES_TOPIC = f"{BASE_TOPIC}/catalog/services/registration"
-
-ACK_DEVICES_TOPIC_BASE = f"{BASE_TOPIC}/catalog/devices/ack"  # As required, the bridge has to send an ACK to the specific device after registration 
-ACK_SERVICES_TOPIC_BASE = f"{BASE_TOPIC}/catalog/services/ack" 
-
-#following topics are required to be implemented due to DeviceMQTTClient
-QUERY_ALL_DEVICES_TOPIC = f"{BASE_TOPIC}/catalog/devices/query" #needed to ask for all registred devices
-QUERY_DEVICE_BY_ID_TOPIC_BASE = f"{BASE_TOPIC}/catalog/devices/query" #for ID research, an ID will be added
-QUERY_RESPONSE_TOPIC_BASE = f"{BASE_TOPIC}/catalog/devices/query/response" #also here, an ID will be added
 
 class MQTTCatalogBridge: # This class will allows that the Catalog to receive registrations through MQTT
     
@@ -249,13 +230,13 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
 
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
-    mqtt_bridge = MQTTCatalogBridge("catalog_bridge_group1", BROKER, PORT)  # Creates the MQTT bridge connected to the same Catalog
-    mqtt_bridge.start()  # Starts the MQTT bridge in background
+#     mqtt_bridge = MQTTCatalogBridge("catalog_bridge_group1", BROKER, PORT)  # Creates the MQTT bridge connected to the same Catalog
+#     mqtt_bridge.start()  # Starts the MQTT bridge in background
 
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        mqtt_bridge.stop()
+#     try:
+#         while True:
+#             time.sleep(1)
+#     except KeyboardInterrupt:
+#         mqtt_bridge.stop()

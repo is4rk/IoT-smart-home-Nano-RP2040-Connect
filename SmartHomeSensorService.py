@@ -7,8 +7,6 @@ import threading
 from constants import *
 
 
-CATALOG_URL="http://localhost:8080/catalog"
-
 def controlSenML(d):
     
     if not(len(d.keys()) == 3):

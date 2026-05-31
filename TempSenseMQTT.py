@@ -25,7 +25,7 @@ class TempSenseMQTT:
         self.clientID = clientID
         self.client = PahoMQTT.Client(clientID)
         self.url=url
-        response = requests.get(f"{self.url}/broker")
+        response = requests.get(f"{self.url}/broker") #TODO: connect to client
         self.temp_thread = threading.Thread(target=self.temp_loop, daemon=True)
         metadata = response.json()
         self.broker = metadata["ip"]
@@ -75,7 +75,7 @@ def start(self):
         self.client.loop_start()
         
 def temp_loop(self):
-    while True:
+    while True and self.ack:
             temp = random.uniform(20.0, 30.0)
             senml = [
                 {
@@ -90,6 +90,5 @@ def temp_loop(self):
                     ]
                 }
             ]
-
             self.client.publish(self.temperature_topic, json.dumps(senml))
             time.sleep(self.interval)

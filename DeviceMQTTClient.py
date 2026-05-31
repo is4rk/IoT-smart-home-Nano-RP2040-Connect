@@ -35,12 +35,16 @@ class DeviceMQTTClient:
         room = random.choice(rooms)
 
         return {
-            "id": self.clientID,
-            "name": f"{device_type}_{self.clientID}",
-            "type": device_type,
-            "location": room,
-            "status": random.choice(["online", "offline"]),
-            "value": round(random.uniform(0, 100), 2)
+            "id": "device_001",
+            "description": "Living room temperature sensor",
+            "endpoint": "http://localhost:8080/sensor/temperature",
+            "mqtt": {
+                "ip": self.broker,
+                "port": self.port,
+                "topic": "/tiot/group01/temperature"
+            },
+            "resources": ["temperature", "humidity"],
+            "time": time.time()
         }
     
     #TODO wait for MQTTCatalog, when its done finish case 2 and check other cases
@@ -82,7 +86,7 @@ class DeviceMQTTClient:
     def _pub_reg_loop(self):
         while True:
             time.sleep(60)
-            payload= json.dumps(self._random_device_payload())
+            payload = json.dumps(self._random_device_payload())
             self.client.publish(REGISTRATION_DEVICES_TOPIC, payload)
 
     def start(self): 

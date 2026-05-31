@@ -6,14 +6,14 @@
 
 
 #define DEBUG 0
-#define USERNAME "TiotGroup1"
+#define USERNAME "arduino"
 #define BASE_NAME "ArduinoGroup1"
 #define HOST_NAME "172.20.10.6"
 #define PORT_NUMB 9966
 
 // Unique topic start
 const String BASE_TOPIC = "/tiot/group1";
-
+const String ID = "/arduino"
 // Pins:
 const int TEMP_PIN = A1;
 const int GREEN_PIN = 2;
@@ -153,7 +153,9 @@ void reconnect() {
 			Serial.println("MQTT connected");
 			// If connected, subscribe to topic [BASE_TOPIC]/led
 			// To receive actuation commands
-			client.subscribe((BASE_TOPIC + String("/led")).c_str());
+			for(int i=0; i<topics.size() ; i++){
+				client.subscribe(topics[i].c_str());
+			}
 		} else {
 			// If connection fails, retry after 5 sec
 			Serial.print("failed, rc=");
@@ -256,7 +258,7 @@ void loop() {
 
 		// Create the payload and the topic (dedicated variable for debugging)
 		String payload = senMlEncode("temperature", temp, "Cel");
-		String topic = BASE_TOPIC + String("/temperature");
+		String topic = BASE_TOPIC + "/"+USERNAME +String("/temperature");
 
 		if(DEBUG) {
 			Serial.println("Payload: ");

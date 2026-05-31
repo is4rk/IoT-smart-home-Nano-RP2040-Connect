@@ -1,7 +1,7 @@
 import json
 from random import random
 from time import time
-import requests
+import requests, threading
 import paho.mqtt.client as PahoMQTT
 
 
@@ -26,6 +26,7 @@ class TempSenseMQTT:
         self.client = PahoMQTT.Client(clientID)
         self.url=url
         response = requests.get(f"{self.url}/broker")
+        self.temp_thread = threading.Thread(target=self.temp_loop, daemon=True)
         metadata = response.json()
         self.broker = metadata["ip"]
         self.port = metadata["port"]
@@ -36,7 +37,7 @@ class TempSenseMQTT:
     def on_connect(self, client, userdata, flags, rc):    
         print(f"Connected with result code {rc}")
         self.client.subscribe(f"{SENSOR_CONFIGURATION_BASE}/{self.clientID}")
-        
+
 
     def on_message(self, client, userdata, msg):
         try:
@@ -51,7 +52,10 @@ def start(self):
         self.client.connect(self.broker, self.port)
         self.client.loop_start()
 
-        while True:
+        
+
+def temp_loop(self):
+    while True:
             temp = random.uniform(20.0, 30.0)
 
             senml = [
@@ -70,4 +74,3 @@ def start(self):
 
             self.client.publish(f"{SENSOR_TEMPERATURE_BASE}/{self.clientID}", json.dumps(senml))
             time.sleep(self.interval)
-

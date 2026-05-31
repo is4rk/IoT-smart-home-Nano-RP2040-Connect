@@ -31,6 +31,7 @@ class TempSenseMQTT:
         self.broker = metadata["ip"]
         self.port = metadata["port"]
         self.interval = 30
+        self.ack = False
         self.temperature_topic = f"{BASE_TOPIC}/{self.clientID}/temperature"
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
@@ -57,12 +58,16 @@ class TempSenseMQTT:
 
 
     def on_message(self, client, userdata, msg):
-        try:
-         payload = json.loads(msg.payload.decode("utf-8"))
-        except json.JSONDecodeError:
-            print("Received message is not a valid JSON")
-            return
-        self.interval = payload["interval"] if "interval" in payload else self.interval
+        topic = msg.topic
+        if topic == f"{SENSOR_CONFIGURATION_BASE}/{self.clientID}":
+            try:
+                payload = json.loads(msg.payload.decode("utf-8"))
+            except json.JSONDecodeError:
+                print("Received message is not a valid JSON")
+                return
+            self.interval = payload["interval"] if "interval" in payload else self.interval
+        elif topic == f"{ACK_DEVICES_TOPIC_BASE}/{self.clientID}":
+            self.ack = True
 
     
 def start(self):

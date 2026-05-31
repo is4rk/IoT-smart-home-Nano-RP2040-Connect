@@ -8,10 +8,10 @@ BASE_TOPIC = f"/tiot/{GROUP}"
 
 REGISTRATION_DEVICES_TOPIC = f"{BASE_TOPIC}/catalog/devices/registration" 
 REGISTRATION_SERVICES_TOPIC = f"{BASE_TOPIC}/catalog/services/registration"
-ACK_DEVICES_TOPIC_BASE = f"{BASE_TOPIC}/catalog/devices/ack" 
-ACK_SERVICES_TOPIC_BASE = f"{BASE_TOPIC}/catalog/services/ack" 
+ACK_DEVICES_TOPIC_BASE = f"{BASE_TOPIC}/catalog/devices/ack"
+ACK_SERVICES_TOPIC_BASE = f"{BASE_TOPIC}/catalog/services/ack"
 QUERY_ALL_DEVICES_TOPIC = f"{BASE_TOPIC}/catalog/devices/query"
-QUERY_DEVICE_BY_ID_TOPIC_BASE = f"{BASE_TOPIC}/catalog/devices/query" 
+QUERY_DEVICE_BY_ID_TOPIC_BASE = f"{BASE_TOPIC}/catalog/devices/query"
 QUERY_RESPONSE_TOPIC_BASE = f"{BASE_TOPIC}/catalog/devices/query/response"
 
 class DeviceMQTTClient:
@@ -19,8 +19,9 @@ class DeviceMQTTClient:
         #TODO remeber that broker is no longer universal, maybe make utils file
         self.broker   = broker
         self.port     = port
+        self.ack = False
         self.clientID = clientID
-        self.client = PahoMQTT.Client(clientID) 
+        self.client = PahoMQTT.Client(clientID)
         self.client.on_connect = self.on_connect  # sets the function called when the bridge connects to the broker
         self.client.on_message = self.on_message  # sets the function called when the bridge receives a message
         self.pub_reg_thread = threading.Thread(target=self._pub_reg_loop, daemon=True)
@@ -35,13 +36,13 @@ class DeviceMQTTClient:
         room = random.choice(rooms)
 
         return {
-            "id": "device_001",
-            "description": "Living room temperature sensor",
-            "endpoint": "http://localhost:8080/sensor/temperature",
+            "id": self.clientID,
+            "description": f"{device_type} in {room}",
+            "endpoint": f"http://localhost:8080/{room}/{device_type}",
             "mqtt": {
                 "ip": self.broker,
                 "port": self.port,
-                "topic": "/tiot/group01/temperature"
+                "topic": f"{BASE_TOPIC}/data/{self.clientID}"
             },
             "resources": ["temperature", "humidity"],
             "time": time.time()
@@ -85,9 +86,10 @@ class DeviceMQTTClient:
     
     def _pub_reg_loop(self):
         while True:
-            time.sleep(60)
-            payload = json.dumps(self._random_device_payload())
-            self.client.publish(REGISTRATION_DEVICES_TOPIC, payload)
+            if self.ACK == True:
+                time.sleep(60)
+                payload = json.dumps(self._random_device_payload())
+                self.client.publish(REGISTRATION_DEVICES_TOPIC, payload)
 
     def start(self): 
         self.client.connect(self.broker, self.port, keepalive=60) 
@@ -96,20 +98,26 @@ class DeviceMQTTClient:
     
     def on_connect(self, client, userdata, flags, rc): #as said, it will handles the action when the bridge connect to the broker
         print(f"[Device MQTT client] Connected with result code {rc}")  # prints the connection result
-
-        self.client.subscribe(f"{ACK_DEVICES_TOPIC_BASE}/{self.clientID}", 0)
-        print(f"[Device MQTT client] Subscribed to {ACK_DEVICES_TOPIC_BASE}/{self.clientID}")
+        self.client.subscribe(f"{ACK_DEVICES_TOPIC_BASE}/{self.clientID}", 0);         print(f"[Device MQTT client] Subscribed to {ACK_DEVICES_TOPIC_BASE}/{self.clientID}")
+        self.client.subscribe(f"{QUERY_RESPONSE_TOPIC_BASE}/{self.clientID}", 0);        print(f"[Device MQTT client] Subscribed to {QUERY_RESPONSE_TOPIC_BASE}/{self.clientID}")
         
-        self.client.subscribe(f"{QUERY_RESPONSE_TOPIC_BASE}/{self.clientID}", 0)
-        print(f"[Device MQTT client] Subscribed to {QUERY_RESPONSE_TOPIC_BASE}/{self.clientID}")
-
     def on_message(self, client, userdata, msg):
-        try:
-            payload = json.loads(msg.payload.decode("utf-8"))
-            print(f"[Device MQTT client] Received on {msg.topic}: {payload}")
-            self.last_response = payload
-        except json.JSONDecodeError:
-            print("[Device MQTT client] Invalid JSON received")
+        topic = msg.topic
+        if topic == f"{ACK_DEVICES_TOPIC_BASE}/{self.clientID}":
+            try:
+                ack_payload = json.loads(msg.payload.decode("utf-8"))
+                print(f"[Device MQTT client] ACK received: {ack_payload}")
+            except Exception:
+                print(f"[Device MQTT client] ACK received (non-JSON): {msg.payload!r}")
+            self.ack = True
+
+        else:
+            try:
+                payload = json.loads(msg.payload.decode("utf-8"))
+                print(f"[Device MQTT client] Received on {msg.topic}: {payload}")
+                self.last_response = payload
+            except json.JSONDecodeError:
+                print("[Device MQTT client] Invalid JSON received")
 
 if __name__ == "__main__":
     device = DeviceMQTTClient("device_001", BROKER, PORT)

@@ -21,6 +21,7 @@ BASE_TOPIC = f"/tiot/{GROUP}"
 """
 REGISTRATION_DEVICES_TOPIC = f"{BASE_TOPIC}/catalog/devices/registration"  # Topic where devices publish their registrations; the bridge will subscribe to it and will handles the communication with the catalog
 REGISTRATION_SERVICES_TOPIC = f"{BASE_TOPIC}/catalog/services/registration"
+REFRESH_DEVICE_TOPIC = f"{{BASE_TOPIC}/catalog/devices/refresh}
 
 ACK_DEVICES_TOPIC_BASE = f"{BASE_TOPIC}/catalog/devices/ack"  # As required, the bridge has to send an ACK to the specific device after registration 
 ACK_SERVICES_TOPIC_BASE = f"{BASE_TOPIC}/catalog/services/ack" 
@@ -100,9 +101,46 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
         elif topic.startswith(f"{QUERY_DEVICE_BY_ID_TOPIC_BASE}/"):
             device_id = topic.split("/")[-1]
             self.handle_query_device_by_id(client, payload, device_id)
+        elif topic == REFRESH_DEVICE_TOPIC:
+            self.handle_device_refresh(self, client, payload)
 
         else:
             debug_print(f"[MQTT Catalog Bridge] Unknown topic: {topic}")
+
+
+    def handle_device_refresh(self, client, payload):
+        device_id = payload.get("id")
+
+        if device_id is None:
+            debug_print("[MQTT Catalog Bridge] Service registration without id")
+            return
+        
+        try:
+            r = requests.put("http://localhost:9090/devices", json=payload, timeout=5)
+
+            if r.status_code in [200, 201]:
+                response = {
+                    "result": "ok",
+                    "message": "deviced refreshed",
+                    "id": device_id,
+                    "status_code": r.status_code
+                }
+            else:
+                response = {
+                    "result": "error",
+                    "message": r.text,
+                    "id": device_id,
+                    "status_code": r.status_code
+                }
+
+        except requests.RequestException as e:
+            response = {
+                "result": "error",
+                "message": str(e),
+                "id": device_id
+            }
+        ack_topic = f"{ACK_DEVICES_TOPIC_BASE}/{device_id}"
+        client.publish(ack_topic, json.dumps(response))
         
     def handle_device_registration(self, client, payload):
         device_id = payload.get("id")

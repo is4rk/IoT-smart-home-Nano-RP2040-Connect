@@ -1,4 +1,3 @@
-#include <Scheduler.h>
 #include <WiFiNINA.h>
 #include <ArduinoJson.h>
 #include <PubSubClient.h>

@@ -17,7 +17,8 @@ const String ID = "/arduino"
 // Pins:
 const int TEMP_PIN = A1;
 const int GREEN_PIN = 2;
-
+String REGISTRATION_DEVICES_TOPIC = BASE_TOPIC+"/catalog/devices/registration";
+String REFRESH_DEVICE_TOPIC = BASE_TOPIC+"/catalog/devices/refresh"
 // We had no access to a local LAN with internet connection, so we used an hotspot to
 // test internet functionalities. However, internet providers don't allow connections on
 // every port, so connecting to "test.mosquitto.org" on port 1883 was not possible.
@@ -46,6 +47,7 @@ DynamicJsonDocument doc_rec;
 
 //clock for available subscription topics refresh
 MBED_RPI_PICO_Timer ITimer1(1);
+MBED_RPI_PICO_Timer ITimer2(2);
 
 list<String> topics;
 void refreshSub(unit allarm_num){
@@ -54,6 +56,19 @@ void refreshSub(unit allarm_num){
 	TIME_ISR_END(alarm_num);
 }
 
+list<String> ;
+void refreshReg(unit allarm_num){
+	TIMER_ISR_START(alarm_num);
+	refresher();
+	TIME_ISR_END(alarm_num);
+}
+
+void refresher(){
+	String payload;
+	registerDevice(payload);
+	serializeJson(doc_snd, payload);
+	client.publish(REFRESH_DEVICE_TOPIC.c_str(), payload.c_str()); // PUT to catalog
+}
 int GET(String& body, String path){
 	client.beginRequest();
 	client.get(path);
@@ -138,6 +153,26 @@ float tempConverter(int a){
 	return T;
 }
 
+void registerDevice() {
+	doc_snd.clear();
+	doc_snd["id"] = USERNAME;
+	doc_snd["description"] = "Arduino temperature sensor and LED actuator";
+	doc_snd["endpoint"] = "http://" + String(HOST_NAME) + ":" + String(PORT_NUMB);
+	
+	JsonObject mqtt = doc_snd.createNestedObject("mqtt");
+	mqtt["ip"] = broker_address;
+	mqtt["port"] = broker_port;
+	
+	JsonArray pub_topics = mqtt.createNestedArray("pub_topics");
+	pub_topics.add(BASE_TOPIC + "/" + USERNAME + "/temperature");
+	
+	JsonArray sub_topics = mqtt.createNestedArray("sub_topics");
+	sub_topics.add(BASE_TOPIC+"/"+USERNAME+"/commands/led");
+	JsonArray resources = doc_snd.createNestedArray("resources");
+	resources.add("temperature");
+	resources.add("led");
+	doc_snd["time"] = millis(); // Alternatively, you can sync via NTP if real epoch time is required
+}
 
 void reconnect() {
 	while(client.state() != MQTT_CONNECTED) {
@@ -156,7 +191,12 @@ void reconnect() {
 			for(int i=0; i<topics.size() ; i++){
 				client.subscribe(topics[i].c_str());
 			}
-		} else {
+			String payload;
+			registerDevice(payload);
+			serializeJson(doc_snd, payload);
+			client.publish(REGISTRATION_DEVICES_TOPIC.c_str(), payload.c_str()); // TODO: make it do a PUT to refresh the device, need to be added in the MQTT bridge
+
+		} else { 
 			// If connection fails, retry after 5 sec
 			Serial.print("failed, rc=");
 			Serial.print(client.state());
@@ -235,6 +275,9 @@ void setup() {
 	//Starts topics sub timer
 	ITimer1.setInterval(120000, refreshSub);
 	retriveTopic(topics);
+
+	//Starts refresh timer
+	ITimer1.setInterval(60000, refreshReg);
 }
 
 // Main loop:

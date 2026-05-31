@@ -99,11 +99,11 @@ void setup() {
   Serial.begin(9600);
   while(!Serial);
   Serial.println("Serial connected");
-  // Temperature pin mode:
+  // Pin modes:
   pinMode(TEMP_PIN, INPUT);
+  pinMode(GREEN_PIN, OUTPUT);
   // WiFi connection start:
   while (status != WL_CONNECTED){
-    pinMode(GREEN_PIN, OUTPUT);
     Serial.println("Attempting to connect to SSID: ");
     Serial.println(ssid);
     status = WiFi.begin(ssid, pass);

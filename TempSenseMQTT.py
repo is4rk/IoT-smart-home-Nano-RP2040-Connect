@@ -3,7 +3,7 @@ from random import random
 from time import time
 import requests, threading
 import paho.mqtt.client as PahoMQTT
-
+import CatalogClient 
 
 #TODO: move these constants to a separate file 
 # define topics in a coherent way
@@ -25,9 +25,9 @@ class TempSenseMQTT:
         self.clientID = clientID
         self.client = PahoMQTT.Client(clientID)
         self.url=url
-        response = requests.get(f"{self.url}/broker") #TODO: connect to client
-        self.temp_thread = threading.Thread(target=self.temp_loop, daemon=True)
-        metadata = response.json()
+        catalogCli = CatalogClient(url)
+        response = catalogCli.get_broker()
+        metadata = response.json() if hasattr(response, 'json') else response
         self.broker = metadata["ip"]
         self.port = metadata["port"]
         self.interval = 30

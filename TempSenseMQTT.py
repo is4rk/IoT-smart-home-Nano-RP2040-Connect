@@ -51,13 +51,10 @@ class TempSenseMQTT:
 def start(self):
         self.client.connect(self.broker, self.port)
         self.client.loop_start()
-
         
-
 def temp_loop(self):
     while True:
             temp = random.uniform(20.0, 30.0)
-
             senml = [
                 {
                     "bn": self.clientID,

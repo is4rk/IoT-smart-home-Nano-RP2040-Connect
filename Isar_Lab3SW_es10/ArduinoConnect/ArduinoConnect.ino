@@ -43,6 +43,17 @@ float temp = 0;
 DynamicJsonDocument doc_snd;
 DynamicJsonDocument doc_rec;
 
+
+//clock for available subscription topics refresh
+MBED_RPI_PICO_Timer ITimer1(1);
+
+list<String> topics;
+void refreshSub(unit allarm_num){
+	TIMER_ISR_START(alarm_num);
+	retriveTopic(topics);
+	TIME_ISR_END(alarm_num);
+}
+
 int GET(String& body, String path){
 	client.beginRequest();
 	client.get(path);
@@ -207,6 +218,8 @@ void setup() {
 	// Connection successful info:
 	Serial.print("Connected with IP address: ");
 	Serial.println(WiFi.localIP());
+	
+	//Gets broker info
 	String body;
 	GET(&body, "/catalog/broker");
 	DeserializationError err = deserializeJson(doc_rec, (char*) body);
@@ -217,8 +230,9 @@ void setup() {
 	broker_address = doc_rec["ip"];
 	broker_port = doc_rec["port"];
 	
-	
-	
+	//Starts topics sub timer
+	ITimer1.setInterval(120000, refreshSub);
+	retriveTopic(topics);
 }
 
 // Main loop:

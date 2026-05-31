@@ -42,7 +42,11 @@ class DeviceMQTTClient:
             "mqtt": {
                 "ip": self.broker,
                 "port": self.port,
-                "topic": f"{BASE_TOPIC}/data/{self.clientID}"
+                "pub_topics": [f"{BASE_TOPIC}/data/{self.clientID}"],
+                "sub_topics": [
+                    f"{ACK_DEVICES_TOPIC_BASE}/{self.clientID}",
+                    f"{QUERY_RESPONSE_TOPIC_BASE}/{self.clientID}"
+                ]
             },
             "resources": ["temperature", "humidity"],
             "time": time.time()

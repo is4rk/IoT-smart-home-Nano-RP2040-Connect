@@ -112,7 +112,8 @@ class Catalog:
 #     "mqtt": {
 #         "ip": "iot.eclipse.org",
 #         "port": 1883,
-#         "topic": "/tiot/group01/temperature"
+#         "pub_topics": ["/tiot/group01/temperature"],
+#         "sub_topics": []
 #     },
 #     "resources": ["temperature", "humidity"],
 #     "time": time.time()
@@ -126,7 +127,8 @@ class Catalog:
 #     "mqtt": {
 #         "ip": "iot.eclipse.org",
 #         "port": 1883,
-#         "topic": "/tiot/group01/temperature"
+#         "pub_topics": ["/tiot/group01/temperature"],
+#         "sub_topics": []
 #     },
 #     "resources": ["temperature", "humidity"],
 #     "time": time.time()
@@ -140,7 +142,8 @@ class Catalog:
 #     "mqtt": {
 #         "ip": "iot.eclipse.org",
 #         "port": 1883,
-#         "topic": "/tiot/group01/smartHome"
+#         "pub_topics": ["/tiot/group01/smartHome"],
+#         "sub_topics": []
 #     },
 #     "resources": [TODO],
 #     "time": time.time()
@@ -170,7 +173,7 @@ class Catalog:
 #             "id": "sensor_01",
 #             "description": "Living room temperature sensor",
 #             "endpoint_url": "http://192.168.1.10:8080",
-#             "mqtt": {"ip": "iot.eclipse.org", "port": 1883, "topic": "/tiot/group01/sensors/temp"},
+#             "mqtt": {"ip": "iot.eclipse.org", "port": 1883, "pub_topics": ["/tiot/group01/sensor_01/temp", "/tiot/group01/sensor_01/hum"], "sub_topics": ["/tiot/group01/sensor_01/commands/temp", "/tiot/group01/sensor_01/commands/hum"]},
 #             "resources": ["temperature"],
 #             "time": 1748000000.0
 #         }
@@ -185,7 +188,7 @@ class Catalog:
 #         "id": "sensor_01",
 #         "description": "Living room temperature sensor",
 #         "endpoint_url": "http://192.168.1.10:8080",
-#         "mqtt": {"ip": "iot.eclipse.org", "port": 1883, "topic": "/tiot/group01/sensors/temp"},
+#         "mqtt": {"ip": "iot.eclipse.org", "port": 1883, "pub_topics": ["/tiot/group01/sensors/temp"], "sub_topics": []},
 #         "resources": ["temperature"],
 #         "time": 1748000000.0
 #     }

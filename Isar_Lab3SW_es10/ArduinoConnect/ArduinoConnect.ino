@@ -175,7 +175,7 @@ void retriveTopic(list<String> topics){
 	}
 	
 	for(JsonPair keyVal : doc_rec.as<JsonObject>()){	 
-		JsonArray topicsJ = keyVal.value()["mqtt"]["topic"];
+		JsonArray topicsJ = keyVal.value()["mqtt"]["sub_topics"];
 		for(JsonVariant topicJ : topicsJ){
 			String topicStr= topicJ.as<String>();
 			topics.push_back(topicStr);
@@ -192,7 +192,7 @@ void retriveTopic(list<String> topics){
 	}
 
 	for(JsonPair keyVal : doc_rec.as<JsonObject>()){	 
-		JsonArray topicsJ= keyVal.value()["mqtt"]["topic"];
+		JsonArray topicsJ= keyVal.value()["mqtt"]["sub_topics"];
 		for(JsonVariant topicJ : topicsJ){
 			String topicStr= topicJ.as<String>();
 			topics.push_back(topicStr);
@@ -239,7 +239,6 @@ void setup() {
 void loop() {
 	// Last message time to have a non blocking delay
 	static unsigned long lastMsg = 0;
-
 	// Check the connection to the broker
 	if(client.state() != MQTT_CONNECTED) {
 		// Reconnect if needed

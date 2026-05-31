@@ -47,7 +47,8 @@ class TempSenseMQTT:
             "mqtt": {
                 "ip": self.broker,
                 "port": self.port,
-                "topic": self.temperature_topic
+                "pub_topic": self.temperature_topic,
+                "sub_topic": f"{BASE_TOPIC}/{self.clientID}/commands/temperature"
             },
             "resources": ["temperature"],
             "time": time.time()

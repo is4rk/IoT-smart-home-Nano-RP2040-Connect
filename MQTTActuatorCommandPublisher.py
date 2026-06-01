@@ -47,11 +47,11 @@ class MQTTActuatorCommandPublisher:
         actuator_service = next(s for s in services if s.get("type") == "actuator_service")
 
         # 3. define feedback and command topics
-        ARDUINO_LED_COMMAND_TOPIC = arduino_device["command_topic"]
-        ARDUINO_LED_FEEDBACK_TOPIC = arduino_device["feedback_topic"]
+        ARDUINO_LED_COMMAND_TOPIC = arduino_device["pub_topics"] #TODO, this is not a single topic, its a list
+        ARDUINO_LED_FEEDBACK_TOPIC = arduino_device["sub_topics"]
 
-        ACTUATOR_COMMAND_TOPIC = actuator_service["command_topic"]
-        ACTUATOR_FEEDBACK_TOPIC = actuator_service["feedback_topic"]
+        ACTUATOR_COMMAND_TOPIC = actuator_service["pub_topics"]
+        ACTUATOR_FEEDBACK_TOPIC = actuator_service["sub_topics"]
 
         # 4. subscribe to feedback topics
         self.client.subscribe(ARDUINO_LED_FEEDBACK_TOPIC, 0);        debug_print(f"[MQTT Command Publisher] Subscribed to {ARDUINO_LED_FEEDBACK_TOPIC}")
@@ -59,7 +59,7 @@ class MQTTActuatorCommandPublisher:
 
         # 5. initialize a parallel thread to refresh the service
         self.running = True
-        refresh_thread = threading.Thread(
+        refresh_thread = threading.Thread( #you can not save the variable to the class, casue its a Daemon thread and cause the threading module keeps track of it
             target=self.loopRefresh,
             args=(
                 ARDUINO_LED_COMMAND_TOPIC,

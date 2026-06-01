@@ -1,29 +1,30 @@
 # MQTT Topic Tree
 
 ```text
-+ tiot
-  + group1
-    + configuration
-      + {sensor_id}
-    + temperature
-      + {sensor_id}
-    + catalog
-      + devices
-      + registration
-      + ack
-          + {device_id}
-      + query
-          + {device_id}
-          + response
-          + {client_id}
-      + services
-      + registration
-      + ack
-          + {service_id}
-      + query
-          + {service_id}
-          + response
-          + {client_id}
+tiot
+└── group1
+    ├── configuration
+    │   └── {sensor_id}
+    ├── temperature
+    │   └── {sensor_id}
+    └── catalog
+        ├── devices
+        ├── registration
+        ├── ack
+        ├── {device_id}
+        ├── query
+        ├── {device_id}
+        ├── response
+        ├── {client_id}
+        ├── services
+        ├── registration
+        ├── ack
+        ├── {service_id}
+        ├── query
+        ├── {service_id}
+        ├── response
+        └── {client_id}
+
 ```
 
 ## Current implemented flow

@@ -21,3 +21,17 @@ QUERY_DEVICE_BY_ID_TOPIC_BASE = f"{BASE_TOPIC}/catalog/devices/query" #for ID re
 QUERY_RESPONSE_TOPIC_BASE = f"{BASE_TOPIC}/catalog/devices/query/response" #also here, an ID will be added
 SENSOR_CONFIGURATION_BASE = f"{BASE_TOPIC}/configuration" #topic where the bridge will send the configuration to the sensor, an ID will be added at the end 
 REFRESH_DEVICE_TOPIC = f"{BASE_TOPIC}/catalog/devices/refresh"
+
+#ex 11
+"""
+    Per mandare un comando ad un arduino specifico, si ha un topic del genere "/tiot/group1/arduino/command/led" per switchare un led ad esempio
+
+    Per ascoltare i feedback, similmente, avremo: "/tiot/group1/arduino/feedback/led"
+    
+    Dunque:
+        BASE_ARDUINO_LED_COMMAND_TOPIC: f"{/tiot/group1/arduino/command/led}"
+        BASE_ARDUINO_LED_FEEDBACK_TOPIC = "/tiot/group1/arduino/feedback"
+    Da costruire nel catalog a partire da BASE_ARDUINO_COMMAND_TOPIC.
+
+"""
+BASE_ARDUINO_COMMAND_TOPIC = "/tiot/group1/arduino/"

@@ -2,28 +2,44 @@
 
 ```text
 tiot
+tiot
 └── group1
-    ├── configuration
-    │   └── {sensor_id}
-    ├── temperature
-    │   └── {sensor_id}
-    └── catalog
-        ├── devices
-        ├── registration
-        ├── ack
-        ├── {device_id}
-        ├── query
-        ├── {device_id}
-        ├── response
-        ├── {client_id}
-        ├── services
-        ├── registration
-        ├── ack
-        ├── {service_id}
-        ├── query
-        ├── {service_id}
-        ├── response
-        └── {client_id}
+    ├── catalog
+    │   ├── devices
+    │   │   ├── registration
+    │   │   ├── ack
+    │   │   │   └── {device_id}
+    │   │   └── query
+    │   │       ├── {device_id}
+    │   │       └── response
+    │   │           └── {client_id}
+    │   └── services
+    │       ├── registration
+    │       ├── ack
+    │       │   └── {service_id}
+    │       └── query
+    │           ├── {service_id}
+    │           └── response
+    │               └── {client_id}
+    ├── devices
+    │   └── {device_id}
+    │       ├── sensors
+    │       │   ├── temperature
+    │       │   ├── humidity
+    │       │   └── motion
+    │       └── cmd
+    │           ├── thermostat
+    │           ├── lights
+    │           ├── blinds
+    │           └── led
+    ├── services
+    │   └── {service_id}
+    │       ├── register
+    │       └── ack
+    └── alerts
+        └── {device_id}
+            ├── temperature
+            └── motion
 
 ```
 

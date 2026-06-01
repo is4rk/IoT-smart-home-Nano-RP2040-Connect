@@ -2,7 +2,6 @@
 
 ```text
 tiot
-tiot
 └── group1
     ├── catalog
     │   ├── devices

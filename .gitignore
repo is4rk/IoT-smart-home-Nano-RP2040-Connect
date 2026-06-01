@@ -1,0 +1,7 @@
+# Ignore temporary files and directories
+*.tmp
+.tmp/
+.tmp
+
+# Ignore Arduino secrets file
+arduino_secrets.h

@@ -35,3 +35,6 @@ REFRESH_DEVICE_TOPIC = f"{BASE_TOPIC}/catalog/devices/refresh"
 
 """
 BASE_ARDUINO_COMMAND_TOPIC = "/tiot/group1/arduino/"
+
+ACTUATOR_COMMAND_TOPIC = "/tiot/group1/actuator/command"
+ACTUATOR_FEEDBACK_TOPIC = "/tiot/group1/actuator/feedback"

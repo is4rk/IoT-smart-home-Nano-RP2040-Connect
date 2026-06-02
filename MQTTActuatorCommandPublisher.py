@@ -341,7 +341,7 @@ class MQTTActuatorCommandPublisher:
         print("\n[MQTT Command Publisher] Feedback received")
         print(f"Topic: {msg.topic}")
         payload = json.loads(msg.payload.decode("utf-8"))
-        print(json.dumps(payload, indent=2))
+        print(json.dumps(payload))
 
 """
 {

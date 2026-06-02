@@ -1,6 +1,7 @@
 
 
 * ESERCIZIO 11
+  MQTTActuatorCommandPublisher
     1. inizializzazione con richiesta di Broker e BrokerPort
     2. "start(self)" actions:
         * ci si connette ==> viene chiamata "on_connect(self)".
@@ -31,4 +32,13 @@
   
   NB: Essendo il sistema di Actuators full REST, sarà MQTTActuatorBridge a gestire la fase intermedia tra il commandPublisher e l'ActuatorService
 
+  MQTTActuatorBridge:
+    1. inizializzazione con richiesta di Broker e BrokerPort
+    2. "start(self)" actions:
+        * ci si connette ==> viene chiamata "on_connect(self)".
+        * si chiama il loop di MQTT
+        * subscribe al topic dove si aspettano i comandi dal publisher
+        * si starta il parallel thread per refreshare con "loopRefresh()"
+    3. Gestire il "on_message()" per quando arrivano i commands:
+        * 
 

@@ -43,15 +43,29 @@ class MQTTActuatorCommandPublisher:
         devices = self.catalogCli.get_devices()
         services = self.catalogCli.get_services()
 
-        arduino_device = next(d for d in devices if d.get("type") == "arduino") # Sticking to the assignment, there is just an arduino (that's why also the topics are not different basing on the arduino id)
-        actuator_service = next(s for s in services if s.get("type") == "actuator_service")
+        arduino_device = next(d for d in devices if "arduino" in d["id"]) # Sticking to the assignment, there is just an arduino (that's why also the topics are not different basing on the arduino id)
+        actuator_service = next(s for s in services if "actuator_service" in s["id"])
 
         # 3. define feedback and command topics
-        ARDUINO_LED_COMMAND_TOPIC = arduino_device["pub_topics"] #TODO, this is not a single topic, its a list
-        ARDUINO_LED_FEEDBACK_TOPIC = arduino_device["sub_topics"]
+        ARDUINO_LED_COMMAND_TOPIC = next(
+            topic for topic in arduino_device["sub_topics"]
+            if "command" in topic
+        )  # command publisher will pub on it
 
-        ACTUATOR_COMMAND_TOPIC = actuator_service["pub_topics"]
-        ACTUATOR_FEEDBACK_TOPIC = actuator_service["sub_topics"]
+        ARDUINO_LED_FEEDBACK_TOPIC = next(
+            topic for topic in arduino_device["pub_topics"]
+            if "feedback" in topic
+        ) # command publisher will sub on it
+
+        ACTUATOR_COMMAND_TOPIC = next(
+            topic for topic in actuator_service["sub_topics"]
+            if "command" in topic
+        )  # command publisher will pub on it
+
+        ACTUATOR_FEEDBACK_TOPIC = next(
+            topic for topic in actuator_service["pub_topics"]
+            if "feedback" in topic
+        ) # command publisher will sub on it, will be something like tiot/group1/.../feedback
 
         # 4. subscribe to feedback topics
         self.client.subscribe(ARDUINO_LED_FEEDBACK_TOPIC, 0);        debug_print(f"[MQTT Command Publisher] Subscribed to {ARDUINO_LED_FEEDBACK_TOPIC}")
@@ -151,7 +165,7 @@ class MQTTActuatorCommandPublisher:
                         target="lights",
                         room=room,
                         value=value,
-                        replyTo=feedbackTopicActuator
+                        unit= "int"
                     )
 
                     self.client.publish(commandTopicActuator, json.dumps(payload), qos=0)
@@ -186,7 +200,7 @@ class MQTTActuatorCommandPublisher:
                         target="thermostat",
                         room=room,
                         value=value,
-                        replyTo=feedbackTopicActuator
+                        unit="Cel"
                     )
 
                     self.client.publish(commandTopicActuator, json.dumps(payload), qos=0)
@@ -221,7 +235,7 @@ class MQTTActuatorCommandPublisher:
                         target="blinds",
                         room=room,
                         value=value,
-                        replyTo=feedbackTopicActuator
+                        unit = "int"
                     )
                     self.client.publish(commandTopicActuator, json.dumps(payload), qos=0)
 
@@ -268,7 +282,7 @@ class MQTTActuatorCommandPublisher:
                         target="led",
                         value=value,
                         room=None,
-                        replyTo=feedbackTopicArduino
+                        unit = int
                     )
                     self.client.publish(commandTopicArduino, json.dumps(payload), qos=0)
                     
@@ -283,18 +297,20 @@ class MQTTActuatorCommandPublisher:
             else:
                 print("Invalid choice. Type Actuator, Arduino, or Q.\n")
 
-    def buildCommand(self, target, value, replyTo, room=None):
+    def buildCommand(self, target, value, room=None, unit=""):
 
-        # costruisce il comando JSON da pubblicare via MQTT.
+        resource_name = f"{room}/{target}/command" if room is not None else f"{target}/command"
+
         return {
-            "command_id": str(uuid.uuid4()),
-            "sender": self.clientID,
-            "target": target,
-            "room": room,
-            "action": "set",
-            "value": value,
-            "timestamp": time.time(),
-            "reply_to": replyTo
+            "bn": self.clientID,
+            "e": [
+                {
+                    "t": int(time.time()),
+                    "n": resource_name,
+                    "v": value,
+                    "u": unit
+                }
+            ]
         }
 
         

@@ -19,7 +19,7 @@ def debug_print(message):
 
 class MQTTActuatorBridge: #Receives through MQTT some commands by CommandPublisher on ACTUATOR_COMMAND_TOPIC
    
-    def __init__( self, clientID="actuator_service_001", catalog_url=None, rest_base_url="http://localhost:8081"):
+    def __init__( self, clientID="actuator_bridge", catalog_url=None, rest_base_url="http://localhost:8081"):
         self.clientID = clientID
 
         self.catalog_url =constants.CATALOG_URL
@@ -47,7 +47,32 @@ class MQTTActuatorBridge: #Receives through MQTT some commands by CommandPublish
 
         #2. subscribe to commandTopic to read commands from publisher and registration on catalog
         self.client.subscribe(constants.ACTUATOR_COMMAND_TOPIC, 0);        debug_print(f"[MQTT Actuator Bridge] Subscribed to {constants.ACTUATOR_COMMAND_TOPIC}")
-        payload = TODO
+        payload = {
+            "id": self.clientID,
+            "description": "MQTT-REST bridge for smart home actuators",
+            "endpoint": self.actuatorsService_url,
+            "mqtt": {
+                "ip": self.broker,
+                "port": self.port,
+                "pub_topics": [
+                    self.feedback_topic
+                ],
+                "sub_topics": [
+                    constants.ACTUATOR_COMMAND_TOPIC
+                ]
+            },
+            "resources": [
+                {
+                    "room": room,
+                    "target": actuator,
+                    "path": f"/sensor/{room}/{actuator}",
+                    "method": "POST"
+                }
+                for room in self.rooms
+                for actuator in self.actuators
+            ],
+            "time": time.time()
+        }
         self.catalogCli.register_device(payload)
 
         #3. a parallel thread is needed to refresh the service until disconnection

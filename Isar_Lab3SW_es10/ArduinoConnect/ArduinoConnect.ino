@@ -8,8 +8,8 @@
 #define DEBUG 0
 #define USERNAME "arduino"
 #define BASE_NAME "ArduinoGroup1"
-#define HOST_NAME "172.20.10.6"
-#define PORT_NUMB 9966
+#define HOST_NAME "test.mosquitto.org'"
+#define PORT_NUMB 1883
 
 //So that i can avoid doing std::list
 using namespace std;

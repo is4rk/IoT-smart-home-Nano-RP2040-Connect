@@ -41,7 +41,8 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
         self.client.disconnect()
 
     def get_mqtt_broker(self):
-        broker_data=requests.get(f"{self.url}/broker") 
+        broker_data=requests.get(f"{self.url}/broker").json()
+        print(broker_data)
         self.port=broker_data["port"]  # public broker that we have to use
         self.broker=broker_data["ip"] # port to use to connect to the broker
     """
@@ -55,8 +56,9 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
         self.client.subscribe(REGISTRATION_DEVICES_TOPIC, 0);        debug_print(f"[MQTT Catalog Bridge] Subscribed to {REGISTRATION_DEVICES_TOPIC}")
         self.client.subscribe(REGISTRATION_SERVICES_TOPIC, 0);         debug_print(f"[MQTT Catalog Bridge] Subscribed to {REGISTRATION_SERVICES_TOPIC}")
         self.client.subscribe(QUERY_ALL_DEVICES_TOPIC, 0);        debug_print(f"[MQTT Catalog Bridge] Subscribed to {QUERY_ALL_DEVICES_TOPIC}") 
+        self.client.subscribe(REFRESH_DEVICE_TOPIC, 0)
         self.client.subscribe(f"{QUERY_DEVICE_BY_ID_TOPIC_BASE}/+", 0);        debug_print(f"[MQTT Catalog Bridge] Subscribed to {QUERY_DEVICE_BY_ID_TOPIC_BASE}/+") 
-
+        
     def on_message(self, client, userdata, msg):
         # if a client publishes something on the registration topic, the bridge will receive it in msg
         # and the bridge has to register that device or service on the catalog
@@ -82,7 +84,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
             device_id = topic.split("/")[-1]
             self.handle_query_device_by_id(client, payload, device_id)
         elif topic == REFRESH_DEVICE_TOPIC:
-            self.handle_device_refresh(self, client, payload)
+            self.handle_device_refresh(client, payload)
 
         else:
             debug_print(f"[MQTT Catalog Bridge] Unknown topic: {topic}")
@@ -96,7 +98,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
             return
         
         try:
-            r = requests.put("http://localhost:9090/devices", json=payload, timeout=5)
+            r = requests.put(self.url, json=payload, timeout=5)
 
             if r.status_code in [200, 201]:
                 response = {
@@ -130,7 +132,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
             return
 
         try:
-            r = requests.post("http://localhost:9090/devices", json=payload, timeout=5)
+            r = requests.post(f"{self.url}/devices", json=payload, timeout=5)
 
             if r.status_code in [200, 201]:
                 response = {
@@ -164,7 +166,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
             return
         
         try:
-            r = requests.post("http://localhost:9090/services", json=payload, timeout=5)
+            r = requests.post(f"{self.url}/services", json=payload, timeout=5)
 
             if r.status_code in [200, 201]:
                 response = {
@@ -201,7 +203,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
         response_topic = f"{QUERY_RESPONSE_TOPIC_BASE}/{client_id}"
 
         try:
-            r = requests.get("http://localhost:9090/devices", timeout=5)
+            r = requests.get(f"{self.url}/devices", timeout=5)
 
             if r.status_code == 200:
                 response = {
@@ -237,7 +239,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
         response_topic = f"{QUERY_RESPONSE_TOPIC_BASE}/{client_id}"
 
         try:
-            r = requests.get(f"http://localhost:9090/devices/{device_id}", timeout=5)
+            r = requests.get(f"{self.url}/devices/{device_id}", timeout=5)
 
             if r.status_code == 200:
                 response = {
@@ -267,13 +269,13 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
 
 
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
 
-#     mqtt_bridge = MQTTCatalogBridge("catalog_bridge_group1", BROKER, PORT)  # Creates the MQTT bridge connected to the same Catalog
-#     mqtt_bridge.start()  # Starts the MQTT bridge in background
+    mqtt_bridge = MQTTCatalogBridge("catalog_bridge_group1", BROKER, PORT, "http://127.0.0.1:8080")  #TODO:remove hardcoded url. Creates the MQTT bridge connected to the same Catalog
+    mqtt_bridge.start()  # Starts the MQTT bridge in background
 
-#     try:
-#         while True:
-#             time.sleep(1)
-#     except KeyboardInterrupt:
-#         mqtt_bridge.stop()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        mqtt_bridge.stop()

@@ -8,7 +8,8 @@ SENMLdatas = ["bt" , "bn", "e"]
 eDatas = ["n", "u", "v", "bv"]
 GROUP = "group1"
 CATALOG_URL = "http://localhost:9966/catalog"
-
+BROKER = "test.mosquitto.org"
+PORT = 1883
 # TOPICS
 
 BASE_TOPIC=f"/tiot/{GROUP}"

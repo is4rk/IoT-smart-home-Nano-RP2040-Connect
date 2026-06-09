@@ -14,6 +14,10 @@
 //So that i can avoid doing std::list
 using namespace std;
 
+//Wifi credentials 
+char ssid[] = SECRET_SSID;
+char pass[] = SECRET_PASS;
+
 // Unique topic start
 const String BASE_TOPIC = "/tiot/group1";
 const String ID = "/arduino";
@@ -29,12 +33,9 @@ String REFRESH_DEVICE_TOPIC = BASE_TOPIC+"/catalog/devices/refresh";
 // on one of our computers.
 // Not tested with public broker
 // Broker address:
-String broker_address = "iot.eclipse.org";;
+String broker_address = "test.mosquitto.org";;
 int broker_port= 1883;
 
-// WiFi credentials:
-char ssid[] = SECRET_SSID;
-char pass[] = SECRET_PASS;
 
 // Temperature conversion constants:
 const int B = 4275;

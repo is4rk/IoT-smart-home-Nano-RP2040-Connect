@@ -1,8 +1,1 @@
-{
-  "broker": {
-    "ip": "iot.eclipse.org",
-    "port": 1883
-  },
-  "devices": [],
-  "services": []
-}
+{"broker": {"ip": "test.mosquitto.org", "port": 1883}, "devices": {"smart_sensor_kitchen": {"id": "smart_sensor_kitchen", "description": "Kitchen Gas & Temp Sensor", "resources": ["gas", "temperature"], "time": 1781038093.0885308}}, "services": {}}

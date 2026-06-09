@@ -14,8 +14,6 @@ class DeviceMQTTClient:
         self.client = PahoMQTT.Client(clientID)
         self.client.on_connect = self.on_connect  # sets the function called when the bridge connects to the broker
         self.client.on_message = self.on_message  # sets the function called when the bridge receives a message
-        self.pub_reg_thread = threading.Thread(target=self._pub_reg_loop, daemon=True)
-        self.pub_reg_thread.start()
         self.last_response=None
 
     def _random_device_payload(self):
@@ -80,7 +78,8 @@ class DeviceMQTTClient:
     
     def _pub_reg_loop(self):
         while True:
-            if self.ACK == True:
+            time.sleep(10) #stops deadlock :D
+            if self.ack == True:
                 time.sleep(60)
                 payload = json.dumps(self._random_device_payload())
                 self.client.publish(REGISTRATION_DEVICES_TOPIC, payload)
@@ -88,6 +87,7 @@ class DeviceMQTTClient:
     def start(self): 
         self.client.connect(self.broker, self.port, keepalive=60) 
         self.client.loop_start() 
+        threading.Thread(target=self._pub_reg_loop, daemon=True).start() #This is here to avoid a possible race condition. I cant wait to stop studying for O.S. T_T
         threading.Thread(target=self._menu_loop, daemon=True).start()
     
     def on_connect(self, client, userdata, flags, rc): #as said, it will handles the action when the bridge connect to the broker
@@ -113,12 +113,19 @@ class DeviceMQTTClient:
             except json.JSONDecodeError:
                 print("[Device MQTT client] Invalid JSON received")
 
-# if __name__ == "__main__":
-#     device = DeviceMQTTClient("device_001", BROKER, PORT)
-#     device.start()
-    
-#     try:
-#         while True:
-#             time.sleep(1)
-#     except KeyboardInterrupt:
-#         print("[Device MQTT client] Exiting")
+if __name__ == "__main__":
+    # Standard client deployment variables
+    # (Pointing directly to your working public sandbox broker)
+    BROKER_HOST = "test.mosquitto.org"
+    BROKER_PORT = 1883
+    UNIQUE_ID   = "smart_sensor_kitchen"
+    # Instantiating matching your exact fixed signature layout
+    device = DeviceMQTTClient(clientID=UNIQUE_ID, broker=BROKER_HOST, port=BROKER_PORT)
+    device.start()
+
+    # Keep main runtime wrapper block responsive
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("Exiting...")

@@ -1,1 +1,1 @@
-{"broker": {"ip": "test.mosquitto.org", "port": 1883}, "devices": {"smart_sensor_kitchen": {"id": "smart_sensor_kitchen", "description": "Kitchen Gas & Temp Sensor", "resources": ["gas", "temperature"], "time": 1781038093.0885308}}, "services": {}}
+{"broker": {"ip": "test.mosquitto.org", "port": 1883}, "devices": {"smart_sensor_kitchen": {"id": "smart_sensor_kitchen", "time": 1781038479.033271}}, "services": {}}

@@ -50,7 +50,7 @@ if __name__ == "__main__":
     cherrypy.tree.mount(TempLog(), '/log', conf)
     
     # host config
-    # default is http://127.0.0.1:8080/
+    # default is http://127.0.0.1:8080
     cherrypy.config.update({'server.socket_host': HOST_NAME})
     cherrypy.config.update({'server.socket_port': PORT_NUMB})
     

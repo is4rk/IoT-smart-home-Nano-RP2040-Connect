@@ -98,7 +98,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
             return
         
         try:
-            r = requests.put(self.url, json=payload, timeout=5)
+            r = requests.put(f"{self.url}/devices/{device_id}", json=payload, timeout=5)
 
             if r.status_code in [200, 201]:
                 response = {

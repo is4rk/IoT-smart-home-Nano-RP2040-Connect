@@ -8,7 +8,7 @@
 #define DEBUG 0
 #define USERNAME "arduino"
 #define BASE_NAME "ArduinoGroup1"
-#define HOST_NAME "127.0.0.1"
+#define HOST_NAME "192.168.1.97" //set to server ip
 #define PORT_NUMB 8080
 
 //So that i can avoid doing std::list

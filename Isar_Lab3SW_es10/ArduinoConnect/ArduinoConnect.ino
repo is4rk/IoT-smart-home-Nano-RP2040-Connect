@@ -215,7 +215,7 @@ void reconnect() {
 void retriveTopic(list<String>& topics){
 	topics.clear();
 	String devTopicsStr;
-	GET(devTopicsStr, "/catalog/devices");
+	GET(devTopicsStr, "/devices");
 	DeserializationError err = deserializeJson(doc_rec, devTopicsStr);
 	if (err){
 		Serial.print(F("deserializeJson() failed with code "));
@@ -231,7 +231,7 @@ void retriveTopic(list<String>& topics){
 	}
 
 	String serTopicsStr;
-	GET(serTopicsStr, "/catalog/services");
+	GET(serTopicsStr, "/services");
 	err = deserializeJson(doc_rec, serTopicsStr);
 	// Error notification
 	if (err){
@@ -269,7 +269,7 @@ void setup() {
 	
 	//Gets broker info
 	String body;
-	GET(body, "/catalog/broker");
+	GET(body, "/broker");
 	DeserializationError err = deserializeJson(doc_rec, body);
 	if (err){
 		Serial.print(F("deserializeJson() failed with code "));

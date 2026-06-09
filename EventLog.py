@@ -8,7 +8,6 @@ from SmartHomeSensorService import controlSenML
 from constants import *
 
 queries = ["room", "since", "before", "type"]
-CATALOG_URL = "http://localhost:8080/catalog"
 
 class EventLog():
     exposed = True

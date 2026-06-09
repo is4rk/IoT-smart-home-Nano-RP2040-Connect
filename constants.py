@@ -1,4 +1,4 @@
-HOST_NAME = "0.0.0.0"
+HOST_NAME = "192.168.1.11"
 PORT_NUMBER = 9966
 rooms = ["living_room", "kitchen", "bedroom"]
 sensors = ["temperature", "humidity", "motion"]
@@ -7,7 +7,7 @@ actuators = ["thermostat", "lights", "blinds"]
 SENMLdatas = ["bt" , "bn", "e"]
 eDatas = ["n", "u", "v", "bv"]
 GROUP = "group1"
-CATALOG_URL = "http://localhost:8080/catalog"
+CATALOG_URL = "http://localhost:9966/catalog"
 
 # TOPICS
 

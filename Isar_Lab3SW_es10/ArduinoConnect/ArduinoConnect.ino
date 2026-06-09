@@ -3,22 +3,25 @@
 #include <PubSubClient.h>
 #include "arduino_secrets.h"
 #include <ArduinoHttpClient.h>
-
-
+#include <MBED_RPi_Pico_TimerInterrupt.h>
+#include <list>
 #define DEBUG 0
 #define USERNAME "arduino"
 #define BASE_NAME "ArduinoGroup1"
 #define HOST_NAME "172.20.10.6"
 #define PORT_NUMB 9966
 
+//So that i can avoid doing std::list
+using namespace std;
+
 // Unique topic start
 const String BASE_TOPIC = "/tiot/group1";
-const String ID = "/arduino"
+const String ID = "/arduino";
 // Pins:
 const int TEMP_PIN = A1;
 const int GREEN_PIN = 2;
 String REGISTRATION_DEVICES_TOPIC = BASE_TOPIC+"/catalog/devices/registration";
-String REFRESH_DEVICE_TOPIC = BASE_TOPIC+"/catalog/devices/refresh"
+String REFRESH_DEVICE_TOPIC = BASE_TOPIC+"/catalog/devices/refresh";
 // We had no access to a local LAN with internet connection, so we used an hotspot to
 // test internet functionalities. However, internet providers don't allow connections on
 // every port, so connecting to "test.mosquitto.org" on port 1883 was not possible.
@@ -26,8 +29,8 @@ String REFRESH_DEVICE_TOPIC = BASE_TOPIC+"/catalog/devices/refresh"
 // on one of our computers.
 // Not tested with public broker
 // Broker address:
-char *broker_address;
-int broker_port;
+String broker_address = "iot.eclipse.org";;
+int broker_port= 1883;
 
 // WiFi credentials:
 char ssid[] = SECRET_SSID;
@@ -41,8 +44,9 @@ float temp = 0;
 
 // Two global objects to store the sent and received JSON strings
 // Capacity more then 1 SenML record
-DynamicJsonDocument doc_snd;
-DynamicJsonDocument doc_rec;
+const int capacity = JSON_OBJECT_SIZE(2) + JSON_ARRAY_SIZE(1) + JSON_OBJECT_SIZE(4) + 100;
+DynamicJsonDocument doc_snd(capacity);
+DynamicJsonDocument doc_rec(capacity);
 
 
 //clock for available subscription topics refresh
@@ -50,31 +54,56 @@ MBED_RPI_PICO_Timer ITimer1(1);
 MBED_RPI_PICO_Timer ITimer2(2);
 
 list<String> topics;
-void refreshSub(unit allarm_num){
-	TIMER_ISR_START(alarm_num);
+void refreshSub(uint allarm_num){
+	TIMER_ISR_START(allarm_num);
 	retriveTopic(topics);
-	TIME_ISR_END(alarm_num);
+	TIMER_ISR_END(allarm_num);
 }
 
-list<String> ;
-void refreshReg(unit allarm_num){
-	TIMER_ISR_START(alarm_num);
+void refreshReg(uint allarm_num){
+	TIMER_ISR_START(allarm_num);
 	refresher();
-	TIME_ISR_END(alarm_num);
+	TIMER_ISR_END(allarm_num);
 }
 
+
+
+// WiFi declarations:
+WiFiClient wifi;
+int status = WL_IDLE_STATUS;
+// The PubSubClient uses the WiFiClient to handle reception/transmission
+// It also needs the broker address and port, the callback function reference 
+PubSubClient client(broker_address.c_str(), broker_port, callback, wifi);
+
+// Flexible SenML encoder funsction using ArduinoJson
+template <typename T>
+String senMlEncode(String res, T v, String uint) {
+	// Initializa document
+	doc_snd.clear();
+	// Assign values
+	doc_snd["bn"] = BASE_NAME;
+	doc_snd["e"][0]["t"] = int(millis()/1000);
+	doc_snd["e"][0]["n"] = res;
+	doc_snd["e"][0]["v"] = v;
+	doc_snd["e"][0]["u"] = uint;
+	// Serialize output
+	String output;
+	serializeJson(doc_snd, output);
+	return output;
+}
 void refresher(){
 	String payload;
-	registerDevice(payload);
+	registerDevice(); //TODO: removed payload from argument, investigate why it was given
 	serializeJson(doc_snd, payload);
 	client.publish(REFRESH_DEVICE_TOPIC.c_str(), payload.c_str()); // PUT to catalog
 }
 int GET(String& body, String path){
-	client.beginRequest();
-	client.get(path);
-	client.endRequest();
-	response = client.responseStatusCode();
-	body = client.reponseBody();
+	HttpClient http = HttpClient(wifi, HOST_NAME, PORT_NUMB);
+	http.beginRequest();
+	http.get(path);
+	http.endRequest();
+	int response = http.responseStatusCode();
+	body = http.responseBody();
 	return response;
 }
 
@@ -120,31 +149,6 @@ void callback(char* topic, byte* payload, unsigned int length){
 		}
 	}
 }
-
-// WiFi declarations:
-WiFiClient wifi;
-int status = WL_IDLE_STATUS;
-// The PubSubClient uses the WiFiClient to handle reception/transmission
-// It also needs the broker address and port, the callback function reference 
-PubSubClient client(broker_address.c_str(), broker_port, callback, wifi);
-
-// Flexible SenML encoder funsction using ArduinoJson
-template <typename T>
-String senMlEncode(String res, T v, String unit) {
-	// Initializa document
-	doc_snd.clear();
-	// Assign values
-	doc_snd["bn"] = BASE_NAME;
-	doc_snd["e"][0]["t"] = int(millis()/1000);
-	doc_snd["e"][0]["n"] = res;
-	doc_snd["e"][0]["v"] = v;
-	doc_snd["e"][0]["u"] = unit;
-	// Serialize output
-	String output;
-	serializeJson(doc_snd, output);
-	return output;
-}
-
 // Temperature sensor to Cel conversion function:
 float tempConverter(int a){
 	float R = ((VCC/(float) a) - 1)*R0;
@@ -188,11 +192,11 @@ void reconnect() {
 			Serial.println("MQTT connected");
 			// If connected, subscribe to topic [BASE_TOPIC]/led
 			// To receive actuation commands
-			for(int i=0; i<topics.size() ; i++){
-				client.subscribe(topics[i].c_str());
+			for(const String& topic : topics){
+				client.subscribe(topic.c_str());
 			}
 			String payload;
-			registerDevice(payload);
+			registerDevice();
 			serializeJson(doc_snd, payload);
 			client.publish(REGISTRATION_DEVICES_TOPIC.c_str(), payload.c_str()); // TODO: make it do a PUT to refresh the device, need to be added in the MQTT bridge
 
@@ -206,11 +210,11 @@ void reconnect() {
 	}
 }
 
-void retriveTopic(list<String> topics){
+void retriveTopic(list<String>& topics){
 	topics.clear();
 	String devTopicsStr;
-	GET(&devTopicsStr, "/catalog/devices");
-	DeserializationError err = deserializeJson(doc_rec, (char*) devTopicsStr);
+	GET(devTopicsStr, "/catalog/devices");
+	DeserializationError err = deserializeJson(doc_rec, devTopicsStr);
 	if (err){
 		Serial.print(F("deserializeJson() failed with code "));
 		Serial.println(err.c_str());
@@ -225,8 +229,8 @@ void retriveTopic(list<String> topics){
 	}
 
 	String serTopicsStr;
-	GET(&serTopicsStr, "/catalog/services");
-	err = deserializeJson(doc_rec, (char*) serTopicsStr);
+	GET(serTopicsStr, "/catalog/services");
+	err = deserializeJson(doc_rec, serTopicsStr);
 	// Error notification
 	if (err){
 		Serial.print(F("deserializeJson() failed with code "));
@@ -263,14 +267,14 @@ void setup() {
 	
 	//Gets broker info
 	String body;
-	GET(&body, "/catalog/broker");
-	DeserializationError err = deserializeJson(doc_rec, (char*) body);
+	GET(body, "/catalog/broker");
+	DeserializationError err = deserializeJson(doc_rec, body);
 	if (err){
 		Serial.print(F("deserializeJson() failed with code "));
 		Serial.println(err.c_str());
 	}
-	broker_address = doc_rec["ip"];
-	broker_port = doc_rec["port"];
+	broker_address = doc_rec["ip"].as<String>();
+	broker_port = doc_rec["port"].as<int>();
 	
 	//Starts topics sub timer
 	ITimer1.setInterval(120000, refreshSub);
@@ -317,4 +321,3 @@ void loop() {
 	// Wait to not overload
 	delay(100);
 }
-

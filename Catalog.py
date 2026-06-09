@@ -116,7 +116,7 @@ class Catalog:
                     raise cherrypy.HTTPError(404, f"{path[1]} not found")
                 del catalog[path[0]][path[1]]
             elif len(path)==1:
-                catalog[path[0]] = []
+                catalog[path[0]] = {}
             elif len(path)==1:
                 catalog={}
                 

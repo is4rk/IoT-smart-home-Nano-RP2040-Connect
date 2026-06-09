@@ -33,5 +33,9 @@ REFRESH_DEVICE_TOPIC = f"{BASE_TOPIC}/catalog/devices/refresh"
         BASE_ARDUINO_LED_FEEDBACK_TOPIC = "/tiot/group1/arduino/feedback"
     Da costruire nel catalog a partire da BASE_ARDUINO_COMMAND_TOPIC.
 
+    DA AGGIORNARE IN BASE AL TREE
 """
-BASE_ARDUINO_COMMAND_TOPIC = "/tiot/group1/arduino/"
+BASE_ARDUINO_COMMAND_TOPIC = "/tiot/group1/arduino/" #maybe to modify
+
+ACTUATOR_COMMAND_TOPIC = "/tiot/group1/actuator/command" #maybe to modify
+ACTUATOR_FEEDBACK_TOPIC = "/tiot/group1/actuator/feedback" #maybe to modify

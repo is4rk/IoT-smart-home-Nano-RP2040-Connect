@@ -1,1 +1,1 @@
-{"broker": {"ip": "test.mosquitto.org", "port": 1883}, "devices": {"temp_sensor_livingroom": {"id": "temp_sensor_livingroom", "time": 1781040998.2355242}}, "services": {}}
+{"broker": {"ip": "test.mosquitto.org", "port": 1883}, "devices": {}, "services": {}}

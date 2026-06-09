@@ -74,7 +74,7 @@ WiFiClient wifi;
 int status = WL_IDLE_STATUS;
 // The PubSubClient uses the WiFiClient to handle reception/transmission
 // It also needs the broker address and port, the callback function reference 
-PubSubClient client(broker_address.c_str(), broker_port, callback, wifi);
+PubSubClient client(wifi);
 
 // Flexible SenML encoder funsction using ArduinoJson
 template <typename T>
@@ -127,7 +127,8 @@ void callback(char* topic, byte* payload, unsigned int length){
 		Serial.print(F("deserializeJson() failed with code "));
 		Serial.println(err.c_str());
 	}
-
+	client.setServer(broker_address.c_str(), broker_port);
+    client.setCallback(callback);
 	// Estract actuation information to use 
 	const char* name = doc_rec["e"][0]["n"];
 	int value = doc_rec["e"][0]["v"];
@@ -282,7 +283,7 @@ void setup() {
 	retriveTopic(topics);
 
 	//Starts refresh timer
-	ITimer1.setInterval(60000, refreshReg);
+	ITimer2.setInterval(60000, refreshReg);
 }
 
 // Main loop:

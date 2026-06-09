@@ -1,9 +1,9 @@
 import json
-from random import random
-from time import time
+import random
+import time
 import requests, threading
 import paho.mqtt.client as PahoMQTT
-import CatalogClient 
+from CatalogClient import CatalogClient 
 from constants import *
 #TODO: move these constants to a separate file 
 # define topics in a coherent way
@@ -64,25 +64,43 @@ class TempSenseMQTT:
             self.ack = True
 
     
-def start(self):
-        self.client.connect(self.broker, self.port)
-        self.client.loop_start()
-        
-def temp_loop(self):
-    while True and self.ack:
-            temp = random.uniform(20.0, 30.0)
-            senml = [
-                {
-                    "bn": self.clientID,
-                    "bt": time.time(),
-                    "e": [
-                        {
-                            "n": "temperature",
-                            "u": "Cel",
-                            "v": temp
-                        }
-                    ]
-                }
-            ]
-            self.client.publish(self.temperature_topic, json.dumps(senml))
-            time.sleep(self.interval)
+    def start(self):
+            self.client.connect(self.broker, self.port)
+            self.client.loop_start()
+            threading.Thread(target=self.temp_loop, daemon=True).start()
+            
+    def temp_loop(self):
+        print("[Sensor] Telemetry and Heartbeat engine started.")
+        while True:
+            if self.ack:
+                # 1. Send Telemetry Data
+                temp = random.uniform(20.0, 30.0)
+                senml = [
+                    {
+                        "bn": self.clientID,
+                        "bt": time.time(),
+                        "e": [{"n": "temperature", "u": "Cel", "v": temp}]
+                    }
+                ]
+                self.client.publish(self.temperature_topic, json.dumps(senml))
+                print(f"[Sensor] Telemetry sent: {round(temp, 2)}°C")
+
+                # 2. Send Heartbeat
+                refresh_payload = {"id": self.clientID}
+                self.client.publish(REFRESH_DEVICE_TOPIC, json.dumps(refresh_payload))
+                print("[Sensor] Heartbeat refresh published to Bridge.")
+
+                time.sleep(self.interval)
+            else:
+                # Wait for initial registration ACK before starting
+                time.sleep(1)
+
+if __name__ == "__main__":
+    sensor = TempSenseMQTT(url="http://127.0.0.1:8080", clientID="temp_sensor_livingroom")
+    sensor.start()
+    
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\n[Sensor] Shutting down sensing layout.")

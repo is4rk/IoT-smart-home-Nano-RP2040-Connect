@@ -114,16 +114,12 @@ class DeviceMQTTClient:
                 print("[Device MQTT client] Invalid JSON received")
 
 if __name__ == "__main__":
-    # Standard client deployment variables
-    # (Pointing directly to your working public sandbox broker)
     BROKER_HOST = "test.mosquitto.org"
     BROKER_PORT = 1883
     UNIQUE_ID   = "smart_sensor_kitchen"
-    # Instantiating matching your exact fixed signature layout
     device = DeviceMQTTClient(clientID=UNIQUE_ID, broker=BROKER_HOST, port=BROKER_PORT)
     device.start()
 
-    # Keep main runtime wrapper block responsive
     try:
         while True:
             time.sleep(1)

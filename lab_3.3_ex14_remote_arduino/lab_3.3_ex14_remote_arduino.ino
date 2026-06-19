@@ -1,3 +1,4 @@
+// Exercise 14 lab 3: Arduino just as a device and sends infos through mqtt
 #include <WiFiNINA.h>
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
@@ -11,6 +12,7 @@
 #define DEVICE_ID "arduino_group1_ex14"
 #define BASE_NAME "ArduinoGroup1Ex14"
 
+//constants
 const char CATALOG_HOST[] = "10.120.246.215";
 const int CATALOG_PORT = 8080;
 const String CATALOG_BASE_PATH = "/catalog";
@@ -35,18 +37,18 @@ const String LCD_COMMAND_TOPIC = BASE_TOPIC + "/" + String(DEVICE_ID) + "/comman
 const String LED_FEEDBACK_TOPIC = BASE_TOPIC + "/" + String(DEVICE_ID) + "/feedback/led";
 const String FAN_FEEDBACK_TOPIC = BASE_TOPIC + "/" + String(DEVICE_ID) + "/feedback/fan";
 const String HEATER_FEEDBACK_TOPIC = BASE_TOPIC + "/" + String(DEVICE_ID) + "/feedback/heater";
-
+// pins
 const int TEMP_PIN = A3;
 const int PIR_PIN = 12;
 const int GREEN_PIN = 2;
 const int HEATER_PIN = A1;
 const int FAN_PIN = A2;
-
+// temperature sensor constants
 const int B = 4275;
 const long int R0 = 100000;
 const float VCC = 1023.0;
 const int SOUND_THRESHOLD = 800;
-
+// intervals
 const unsigned long SENSOR_PERIOD_MS = 10000;
 const unsigned long REGISTRATION_RENEWAL_MS = 60000;
 const unsigned long PRESENCE_HOLD_MS = 30000;
@@ -54,7 +56,7 @@ const unsigned long NOISE_HOLD_MS = 40000;
 
 char ssid[] = SECRET_SSID;
 char pass[] = SECRET_PASS;
-
+// broker
 String broker_address = "test.mosquitto.org";
 int broker_port = 1883;
 
@@ -70,11 +72,13 @@ volatile bool noiseDetected = false;
 StaticJsonDocument<1536> doc_snd;
 StaticJsonDocument<1024> doc_rec;
 
+// wifi and mqtt clients
 WiFiClient mqttWifi;
 WiFiClient httpWifi;
 PubSubClient client(mqttWifi);
 LiquidCrystal_PCF8574 lcd(0x27);
 
+// mic event handler
 void onPDMdata() {
   int bytesAvailable = PDM.available();
   PDM.read(sampleBuffer, bytesAvailable);
@@ -98,6 +102,7 @@ float tempConverter(int a) {
   return T - 273.15;
 }
 
+// get request to catalog
 String httpGET(String path) {
   String response = "";
   String fullPath = CATALOG_BASE_PATH + path;
@@ -112,6 +117,7 @@ String httpGET(String path) {
   return response;
 }
 
+// retrieve broker info from catalog
 void retrieveCatalogBroker() {
   String body = httpGET("/broker");
   StaticJsonDocument<256> brokerDoc;
@@ -122,6 +128,7 @@ void retrieveCatalogBroker() {
   }
 }
 
+// SenML payload construction
 String senmlValue(String name, String unit, float value) {
   doc_snd.clear();
   doc_snd["bn"] = "/sensor/" + ROOM;
@@ -134,6 +141,7 @@ String senmlValue(String name, String unit, float value) {
   return output;
 }
 
+// SenML payload for boolean values
 String senmlBool(String name, bool value) {
   doc_snd.clear();
   doc_snd["bn"] = "/sensor/" + ROOM;
@@ -146,6 +154,7 @@ String senmlBool(String name, bool value) {
   return output;
 }
 
+// registration payload construction
 String buildDeviceRegistrationPayload() {
   doc_snd.clear();
   doc_snd["id"] = DEVICE_ID;
@@ -180,6 +189,7 @@ String buildDeviceRegistrationPayload() {
   return payload;
 }
 
+// registration on the catalog
 void publishDeviceProfile(String topic) {
   String payload = buildDeviceRegistrationPayload();
   client.publish(topic.c_str(), payload.c_str(), false);
@@ -189,11 +199,13 @@ void publishDeviceProfile(String topic) {
   }
 }
 
+// publish feedback for commands
 void publishFeedback(String topic, String name, int value, String unit) {
   String payload = senmlValue(name, unit, value);
   client.publish(topic.c_str(), payload.c_str());
 }
 
+// print on the lcd and serial monitor
 void displayMessage(String message) {
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -206,6 +218,7 @@ void displayMessage(String message) {
   Serial.println(message);
 }
 
+// json message decoder into commands
 void applyCommand(String topic, JsonDocument& doc) {
   JsonObject event = doc["e"][0];
   const char* name = event["n"];
@@ -228,6 +241,7 @@ void applyCommand(String topic, JsonDocument& doc) {
   }
 }
 
+// callback for incoming mqtt messages
 void callback(char* topic, byte* payload, unsigned int length) {
   doc_rec.clear();
   DeserializationError err = deserializeJson(doc_rec, payload, length);
@@ -245,6 +259,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   applyCommand(topicString, doc_rec);
 }
 
+// connect function and subscriptions
 void reconnect() {
   while (!client.connected()) {
     Serial.print("[MQTT] Connecting to ");
@@ -270,31 +285,31 @@ void reconnect() {
 }
 
 void setup() {
+  // serial
   Serial.begin(9600);
   while (!Serial);
-
+  // pins
   pinMode(TEMP_PIN, INPUT);
   pinMode(PIR_PIN, INPUT);
   pinMode(GREEN_PIN, OUTPUT);
   pinMode(HEATER_PIN, OUTPUT);
   pinMode(FAN_PIN, OUTPUT);
-
+  // lcd
   lcd.begin(16, 2);
   lcd.setBacklight(128);
   lcd.home();
   lcd.clear();
   lcd.print("Ex14 booting");
-
+  // wifi internet connection
   while (wifi_status != WL_CONNECTED) {
     Serial.print("Attempting to connect to SSID: ");
     Serial.println(ssid);
     wifi_status = WiFi.begin(ssid, pass);
     delay(10000);
   }
-
   Serial.print("Connected with IP address: ");
   Serial.println(WiFi.localIP());
-
+  // mic 
   PDM.onReceive(onPDMdata);
   if (!PDM.begin(1, 20000)) {
     Serial.println("Failed to start PDM. Noise publishing will stay false.");
@@ -307,10 +322,13 @@ void setup() {
 }
 
 void loop() {
+  // reconnect if not connected
   if (!client.connected()) {
     reconnect();
   }
   client.loop();
+
+  // check sensors and then publish info
 
   unsigned long now = millis();
   if (digitalRead(PIR_PIN) == HIGH) {

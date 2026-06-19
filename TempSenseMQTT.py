@@ -21,12 +21,12 @@ class TempSenseMQTT:
         catalogCli = CatalogClient(url)
         response = catalogCli.get_broker()
         metadata = response.json() if hasattr(response, 'json') else response
-        self.device_payload = self.build_device_payload()
         self.broker = metadata["ip"]
         self.port = metadata["port"]
         self.interval = 30
         self.ack = False
         self.temperature_topic = f"{BASE_TOPIC}/{self.clientID}/temperature"
+        
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
 
@@ -37,8 +37,6 @@ class TempSenseMQTT:
         self.device_payload = self.build_device_payload()
         self.client.publish(REGISTRATION_DEVICES_TOPIC, json.dumps(self.device_payload))
     
-        self.client.publish(REGISTRATION_DEVICES_TOPIC, json.dumps(device))
-
 
 
     def on_message(self, client, userdata, msg):

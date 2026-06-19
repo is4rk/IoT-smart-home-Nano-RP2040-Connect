@@ -26,6 +26,7 @@ class MQTTActuatorBridge: #Receives through MQTT some commands by CommandPublish
         self.catalogCli = CatalogClient(self.catalog_url)
         self.actuatorsService_url ="http://localhost:8081/sensor"
         self.feedback_topic = constants.ACTUATOR_FEEDBACK_TOPIC
+        self.rest_base_url = rest_base_url
 
         # get broker infos
         self.broker = self.catalogCli.get_broker()["ip"]
@@ -73,12 +74,12 @@ class MQTTActuatorBridge: #Receives through MQTT some commands by CommandPublish
             ],
             "time": time.time()
         }
-        self.catalogCli.register_device(payload)
+        self.catalogCli.register_service(payload)
 
         #3. a parallel thread is needed to refresh the service until disconnection
         self.running = True
         refresh_thread = threading.Thread(
-            target=self.refresh_loop,
+            target=self.loopRefresh,
             daemon=True
         )
         refresh_thread.start()
@@ -154,7 +155,16 @@ class MQTTActuatorBridge: #Receives through MQTT some commands by CommandPublish
             target=target,
             senml_payload=senml_payload
         )
-
+        
+        return {
+            "result": "ok",
+            "command_id": command_id,
+            "sender": sender,
+            "target": target,
+            "room": room,
+            "value": value,
+            "timestamp": time.time()
+        }
 
 
     def command_to_senml(self, room, target, value):
@@ -207,6 +217,7 @@ class MQTTActuatorBridge: #Receives through MQTT some commands by CommandPublish
     def send_to_rest_actuator(self, room, target, senml_payload):
         url = f"{self.rest_base_url}/{room}/{target}"
         response = requests.post( url, json=senml_payload, timeout=5 )
+        return response
 
 
     def publish_feedback(self, feedback, feedback_topic): #it publish the feedback on the feedback_topic

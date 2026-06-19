@@ -5,7 +5,7 @@ import time
 from constants import *
 
 DEBUG = True
-CATALOG_URL = f"http://localhost:{PORT_NUMBER}"
+CATALOG_URL = f"http://localhost:{PORT_NUMBER}/catalog" # they run on the same device, this can be changed of course
 
 def debug_print(message):
     if DEBUG:
@@ -42,7 +42,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
 
     def get_mqtt_broker(self):
         print(self.url)
-        broker_data=requests.get(f"{self.url}/catalog/broker").json()
+        broker_data=requests.get(f"{self.url}/broker").json()
         print(broker_data)
         self.port=broker_data["port"]  # public broker that we have to use
         self.broker=broker_data["ip"] # port to use to connect to the broker

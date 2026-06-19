@@ -61,7 +61,6 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
     def on_message(self, client, userdata, msg):
         # if a client publishes something on the registration topic, the bridge will receive it in msg
         # and the bridge has to register that device or service on the catalog
-        print("AAAAAAAAAAAAAAAAA")
         print(msg)
         topic = msg.topic
 
@@ -91,6 +90,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
 
 
     def handle_device_refresh(self, client, payload):
+        #simply responds to put requests, done to refresh device, can work also as post (since the catalog specifications said so)
         device_id = payload.get("id")
 
         if device_id is None:
@@ -126,7 +126,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
         
     def handle_device_registration(self, client, payload):
         device_id = payload.get("id")
-
+        #handles post
         if device_id is None:
             debug_print("[MQTT Catalog Bridge] Device registration without id")
             return

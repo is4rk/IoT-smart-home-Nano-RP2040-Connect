@@ -1,9 +1,10 @@
+# Exercise 2 and 3: Smart Home Sensor and Actuator Service, with catalog implementation
 import cherrypy
 import json
 import time
 import random
-from CatalogClient import CatalogClient
 import threading
+from CatalogClient import CatalogClient
 from constants import *
 
 
@@ -26,6 +27,7 @@ def controlSenML(d):
 
 
 class SmartHomeSensorService():
+    # Init and try to register to the catalog
     def __init__(self):
         self.catalog_client=CatalogClient(CATALOG_URL)
         self.service_payload = {
@@ -65,10 +67,13 @@ class SmartHomeSensorService():
     }
 
 
+    # GET: retrieve informations, changing depending on the uri
+    # It is a simulation and we use random uniform to generate values for sensors
     def GET(self, *path, **query):
         # /sensor/<room>/<type>
         if(len(path) != 2):
-             raise cherrypy.HTTPError(404, "len path invalid") 
+            raise cherrypy.HTTPError(404, "len path invalid") 
+        # Handling if it is a sensor or an actuator
         if(len(path) == 2 and path[0] in rooms and path[1] in sensors):
             bn = "/sensor/" + path[0] 
             bt = time.time()
@@ -128,30 +133,31 @@ class SmartHomeSensorService():
             return json.dumps(result)
         else:
             raise cherrypy.HTTPError(404, "invalid path") 
-            
+    
+    # POST: update the state of actuators with the infors arriving in the body
     def POST(self, *path, **query):
         # type in actuators
         if(len(path) == 2 and path[0] in rooms and path[1] in actuators):
-                body = cherrypy.request.body.read()
-                data = json.loads(body)
+            body = cherrypy.request.body.read()
+            data = json.loads(body)
 
-                flag422 = controlSenML(data)
-                if(flag422 == False): 
-                    raise cherrypy.HTTPError(422, "Invalid senML format") 
+            flag422 = controlSenML(data)
+            if(flag422 == False): 
+                raise cherrypy.HTTPError(422, "Invalid senML format") 
 
-                name = data["e"][0]["n"]
-                if(name != path[1]): raise cherrypy.HTTPError(400, "path not match senml data")  
-                 
-                match path[1]:
-                    case "thermostat":
-                        unit = "Celsius"
-                        self.actuatorsStates["thermostat"] = data["e"][0]["v"]
-                    case "blinds":
-                        unit = "% position"
-                        self.actuatorsStates["blinds"] = data["e"][0]["v"]
-                    case "lights":
-                        unit = "boolean"
-                        self.actuatorsStates["lights"] = data["e"][0]["bv"]                   
+            name = data["e"][0]["n"]
+            if(name != path[1]): raise cherrypy.HTTPError(400, "path not match senml data")  
+                
+            match path[1]:
+                case "thermostat":
+                    unit = "Celsius"
+                    self.actuatorsStates["thermostat"] = data["e"][0]["v"]
+                case "blinds":
+                    unit = "% position"
+                    self.actuatorsStates["blinds"] = data["e"][0]["v"]
+                case "lights":
+                    unit = "boolean"
+                    self.actuatorsStates["lights"] = data["e"][0]["bv"]                   
         else:
             raise cherrypy.HTTPError(404, "invalid path") 
 

@@ -6,7 +6,7 @@
 #include <MBED_RPi_Pico_TimerInterrupt.h>
 #include <list>
 #define DEBUG 1
-#define USERNAME "ardsssssfwafsdk;gjasdoadsjgjsadgpingpdsauino"
+#define USERNAME "arasafsad"
 #define BASE_NAME "ArduinoGroup1"
 #define HOST_NAME "10.35.244.215" //set to server ip
 #define PORT_NUMB 8080

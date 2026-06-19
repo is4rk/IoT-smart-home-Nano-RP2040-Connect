@@ -1,3 +1,4 @@
+# lab 3 exercise 9
 import json
 import random
 import time
@@ -5,14 +6,7 @@ import requests, threading
 import paho.mqtt.client as PahoMQTT
 from CatalogClient import CatalogClient 
 from constants import *
-#TODO: move these constants to a separate file 
-# define topics in a coherent way
 
-"""
-    =========
-    TOPICS 
-    =========
-"""
 class TempSenseMQTT:
     def __init__(self,url,clientID):
         self.clientID = clientID

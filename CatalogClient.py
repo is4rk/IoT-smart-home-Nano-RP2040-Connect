@@ -1,4 +1,4 @@
-#lab 2 ex 8
+#lab 2 exercise 6
 import requests
 #not much to say tbh, just adds /catalog to the base url
 class CatalogClient:

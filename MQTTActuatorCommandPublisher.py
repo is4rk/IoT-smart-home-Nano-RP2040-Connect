@@ -182,7 +182,7 @@ class MQTTActuatorCommandPublisher:
                     room = parts[1]
                     rawValue = parts[2]
 
-                    if room not in constants.constants.rooms:
+                    if room not in constants.rooms:
                         print(f"Invalid room: {room}. Valid constants.rooms: {constants.rooms}\n")
                         continue
 
@@ -274,7 +274,7 @@ class MQTTActuatorCommandPublisher:
 
                     value = parts[1]
 
-                    if value in [0,1]:
+                    if value in ["0","1"]:
                         print("Invalid led value. Use 0 or 1.\n")
                         continue
 

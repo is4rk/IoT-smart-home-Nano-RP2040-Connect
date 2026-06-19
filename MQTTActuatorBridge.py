@@ -74,6 +74,7 @@ class MQTTActuatorBridge: #Receives through MQTT some commands by CommandPublish
             ],
             "time": time.time()
         }
+        self.service_payload = payload
         self.catalogCli.register_service(payload)
 
         #3. a parallel thread is needed to refresh the service until disconnection
@@ -120,7 +121,8 @@ class MQTTActuatorBridge: #Receives through MQTT some commands by CommandPublish
         #each 60 sec refreshed in catalog
         while self.running:
             time.sleep(60)
-            result = self.catalogCli.refresh_service(self.clientID)
+            self.service_payload["time"] = time.time()
+        result = self.catalogCli.refresh_service(self.clientID, self.service_payload)
 
     def handle_command(self, command):
         """

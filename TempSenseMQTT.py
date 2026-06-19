@@ -21,6 +21,7 @@ class TempSenseMQTT:
         catalogCli = CatalogClient(url)
         response = catalogCli.get_broker()
         metadata = response.json() if hasattr(response, 'json') else response
+        self.device_payload = self.build_device_payload()
         self.broker = metadata["ip"]
         self.port = metadata["port"]
         self.interval = 30
@@ -33,22 +34,8 @@ class TempSenseMQTT:
         print(f"Connected with result code {rc}")
         self.client.subscribe(f"{SENSOR_CONFIGURATION_BASE}/{self.clientID}", 0)
         self.client.subscribe(f"{ACK_DEVICES_TOPIC_BASE}/{self.clientID}", 0)
-        device = {
-            "id": self.clientID,
-            "description": "Living room temperature sensor",
-            "endpoint": "http://localhost:8080/sensor/temperature",
-            "mqtt": {
-                "ip": self.broker,
-                "port": self.port,
-                "pub_topics": [self.temperature_topic],
-                "sub_topics": [
-                    f"{SENSOR_CONFIGURATION_BASE}/{self.clientID}",
-                    f"{ACK_DEVICES_TOPIC_BASE}/{self.clientID}"
-                ]
-            },
-            "resources": ["temperature"],
-            "time": time.time()
-        }
+        self.device_payload = self.build_device_payload()
+        self.client.publish(REGISTRATION_DEVICES_TOPIC, json.dumps(self.device_payload))
     
         self.client.publish(REGISTRATION_DEVICES_TOPIC, json.dumps(device))
 
@@ -93,14 +80,33 @@ class TempSenseMQTT:
                 print(f"[Sensor] Telemetry sent: {round(temp, 2)}°C")
 
                 # 2. Send Heartbeat
-                refresh_payload = {"id": self.clientID}
-                self.client.publish(REFRESH_DEVICE_TOPIC, json.dumps(refresh_payload))
+                self.device_payload = self.build_device_payload()
+                self.client.publish(REFRESH_DEVICE_TOPIC, json.dumps(self.device_payload))
                 print("[Sensor] Heartbeat refresh published to Bridge.")
 
                 time.sleep(self.interval)
             else:
                 # Wait for initial registration ACK before starting
                 time.sleep(1)
+
+
+    def build_device_payload(self):
+        return {
+            "id": self.clientID,
+            "description": "Living room temperature sensor",
+            "endpoint": "http://localhost:9966/sensor/temperature",
+            "mqtt": {
+                "ip": self.broker,
+                "port": self.port,
+                "pub_topics": [self.temperature_topic],
+                "sub_topics": [
+                    f"{SENSOR_CONFIGURATION_BASE}/{self.clientID}",
+                    f"{ACK_DEVICES_TOPIC_BASE}/{self.clientID}"
+                ]
+            },
+            "resources": ["temperature"],
+            "time": time.time()
+        }
 
 if __name__ == "__main__":
     sensor = TempSenseMQTT(url="http://127.0.0.1:8080", clientID="temp_sensor_livingroom")

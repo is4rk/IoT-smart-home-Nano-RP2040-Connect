@@ -39,21 +39,18 @@ class EventLog():
     def start(self):
         self.client.connect(self.broker, self.port, keepalive=60)
         self.client.loop_start()
-        Thread(target=self.temp_loop, daemon=True).start()
+        Thread(target=self.loopRefresh, daemon=True).start()
 
-    def temp_loop(self):
+    def loopRefresh(self):
         print("[Sensor] Telemetry and Heartbeat engine started.")
         while True:
-            if self.ack:
-                # Send Heartbeat
-                refresh_payload = {"id": self.clientID}
-                self.client.publish(REFRESH_DEVICE_TOPIC, json.dumps(refresh_payload))
-                print("[Sensor] Heartbeat refresh published to Bridge.")
-
-                time.sleep(self.interval)
-            else:
-                # Wait for initial registration ACK before starting
-                time.sleep(1)
+            time.sleep(self.interval)
+            try:
+                service = self.build_service_payload()
+                CatalogClient(CATALOG_URL).refresh_service(self.clientID, service)
+                print("[EventLog] Service refreshed on Catalog.")
+            except Exception as e:
+                print(f"[EventLog] Refresh failed: {e}")
 
     def stop(self):
         self.client.loop_stop()
@@ -62,22 +59,9 @@ class EventLog():
     def on_connect(self, client, userdata, flags, rc):
         self.client.subscribe(f"{BASE_TOPIC}/log")
 
-        service = {
-            "id": self.clientID,
-            "description": "Event Log Service",
-            "endpoint": "http://localhost:8080/log",
-            "mqtt": {
-                "ip": self.broker,
-                "port": self.port,
-                "pub_topic": None,
-                "sub_topic": f"{BASE_TOPIC}/log"
-            },
-            "resources": ["temperature"],
-            "time": time.time()
-        }
-    
+        service = self.build_service_payload()
         self.client.publish(REGISTRATION_SERVICES_TOPIC, json.dumps(service))
-
+    
     def on_message(self, client, userdata, msg):
         # Ingest SenML payloads from MQTT; normalize similar to POST handling
         raw = msg.payload
@@ -120,6 +104,20 @@ class EventLog():
         if added:
             self.last_response = f"Added {added} records from MQTT"
 
+    def build_service_payload(self):
+        return {
+            "id": self.clientID,
+            "description": "Event Log Service",
+            "endpoint": "http://localhost:9966/log",
+            "mqtt": {
+                "ip": self.broker,
+                "port": self.port,
+                "pub_topics": [],
+                "sub_topics": [f"{BASE_TOPIC}/log"]
+            },
+            "resources": ["event_log", "temperature", "humidity", "motion"],
+            "time": time.time()
+        }
 
     # REST 
 

@@ -14,9 +14,9 @@ if __name__ == "__main__":
 
     # service mounting section
     # EventLog is disabled for now (not started)
-    # cherrypy.tree.mount(EventLog(), '/log', conf)
+    cherrypy.tree.mount(EventLog(), '/log', conf)
     cherrypy.tree.mount(Catalog(), '/catalog', conf)
-    # cherrypy.tree.mount(SmartHomeSensorService(), '/sensor', conf)
+    cherrypy.tree.mount(SmartHomeSensorService(), '/sensor', conf)
     # no EventLog startup subscription
     
     # host config

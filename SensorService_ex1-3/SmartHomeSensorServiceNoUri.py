@@ -1,3 +1,5 @@
+# Exercise 1: First version of Sensor service, without uri
+
 import cherrypy
 import json
 import time
@@ -13,26 +15,25 @@ class SmartHomeSensorServiceNoUri():
         room = query.get('room')
         sensor_type = query.get('sensor_type')
         
-        # Validate room parameter
+        # Check if sensor and room are ok
         if room is None or room not in rooms:
             raise cherrypy.HTTPError(404, json.dumps({
                 "error": "room not found",
                 "available_rooms": rooms
             }))
         
-        # Validate sensor type parameter
         if sensor_type is None or sensor_type not in sensors:
             raise cherrypy.HTTPError(400, json.dumps({
                 "error": "unknown sensor type",
                 "valid_types": sensors
             }))
         
-        # Generate sensor reading
         bn = "/sensor/" + room
         bt = time.time()
         
+        # Random values
         if sensor_type == "temperature":
-            unit = units[0]  # °C
+            unit = units[0]  
             value = random.uniform(5, 30)
             use_bv = False
         elif sensor_type == "humidity":
@@ -44,7 +45,6 @@ class SmartHomeSensorServiceNoUri():
             value = random.choice([True, False])
             use_bv = True
         
-        # Build SenML response
         result = {
             "bn": bn,
             "bt": bt,

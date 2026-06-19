@@ -271,7 +271,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
 
 if __name__ == '__main__':
 
-    mqtt_bridge = MQTTCatalogBridge("catalog_bridge_group1", BROKER, PORT, "http://127.0.0.1:8080")  #TODO:remove hardcoded url. Creates the MQTT bridge connected to the same Catalog
+    mqtt_bridge = MQTTCatalogBridge("catalog_bridge_group1", BROKER, PORT, "http://0.0.0.0:8080")  #TODO:remove hardcoded url. Creates the MQTT bridge connected to the same Catalog
     mqtt_bridge.start()  # Starts the MQTT bridge in background
 
     try:

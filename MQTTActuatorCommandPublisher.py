@@ -383,3 +383,15 @@ class MQTTActuatorCommandPublisher:
 }
 
 """
+
+
+if __name__ == '__main__':
+    # URL matches the one defined in constants.py for the Catalog
+    catalog_url = constants.CATALOG_URL
+    
+    # Initialize and start the publisher
+    publisher = MQTTActuatorCommandPublisher("command_publisher_001", catalog_url)
+    try:
+        publisher.start()
+    except KeyboardInterrupt:
+        print("\nPublisher manually stopped.")

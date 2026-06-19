@@ -7,66 +7,57 @@ import paho.mqtt.client as PahoMQTT
 import constants
 from CatalogClient import CatalogClient
 
-
 DEBUG = True
-
-#TODO registrarsi al catalog
 
 def debug_print(message):
     if DEBUG:
         print(message)
 
 
-class MQTTActuatorBridge: #Receives through MQTT some commands by CommandPublisher on ACTUATOR_COMMAND_TOPIC
+class MQTTActuatorBridge:
    
-    def __init__( self, clientID="actuator_bridge", catalog_url=None, rest_base_url="http://localhost:8081"):
+    def __init__(self, clientID="actuator_bridge", rest_base_url="http://localhost:8081/sensor"):
         self.clientID = clientID
-
-        self.catalog_url =constants.CATALOG_URL
+        self.catalog_url = constants.CATALOG_URL
         self.catalogCli = CatalogClient(self.catalog_url)
-        self.actuatorsService_url ="http://localhost:8081/sensor"
-        self.feedback_topic = constants.ACTUATOR_FEEDBACK_TOPIC
         self.rest_base_url = rest_base_url
+        self.feedback_topic = constants.ACTUATOR_FEEDBACK_TOPIC
 
         # get broker infos
-        self.broker = self.catalogCli.get_broker()["ip"]
-        self.port = int(self.catalogCli.get_broker()["port"])
+        broker_info = self.catalogCli.get_broker()
+        self.broker = broker_info["ip"]
+        self.port = int(broker_info["port"])
 
         self.rooms = constants.rooms
         self.actuators = constants.actuators
-
-        self.running = False #useful for the threads
+        self.running = False 
 
         self.client = PahoMQTT.Client(self.clientID)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
 
     def start(self):
-        #1. connects to the broker
-        self.client.connect(self.broker, self.port, keepalive=60)  # it connects the bridge to the MQTT broker
-        self.client.loop_start()  # Keeps the MQTT client alive and listening for messages
+        self.client.connect(self.broker, self.port, keepalive=60) 
+        self.client.loop_start()  
 
-        #2. subscribe to commandTopic to read commands from publisher and registration on catalog
-        self.client.subscribe(constants.ACTUATOR_COMMAND_TOPIC, 0);        debug_print(f"[MQTT Actuator Bridge] Subscribed to {constants.ACTUATOR_COMMAND_TOPIC}")
-        payload = {
+        self.client.subscribe(constants.ACTUATOR_COMMAND_TOPIC, 0)
+        debug_print(f"[MQTT Actuator Bridge] Subscribed to {constants.ACTUATOR_COMMAND_TOPIC}")
+        
+        self.service_payload = {
             "id": self.clientID,
             "description": "MQTT-REST bridge for smart home actuators",
-            "endpoint": self.actuatorsService_url,
+            "endpoint": self.rest_base_url,
             "mqtt": {
                 "ip": self.broker,
                 "port": self.port,
-                "pub_topics": [
-                    self.feedback_topic
-                ],
-                "sub_topics": [
-                    constants.ACTUATOR_COMMAND_TOPIC
-                ]
+                "pub_topics": [self.feedback_topic],
+                "sub_topics": [constants.ACTUATOR_COMMAND_TOPIC]
             },
             "resources": [
                 {
                     "room": room,
                     "target": actuator,
-                    "path": f"/sensor/{room}/{actuator}",
+                    "path": f"{self.rest_base_url}/{room}/{actuator}",
                     "method": "POST"
                 }
                 for room in self.rooms
@@ -74,42 +65,31 @@ class MQTTActuatorBridge: #Receives through MQTT some commands by CommandPublish
             ],
             "time": time.time()
         }
-        self.service_payload = payload
-        self.catalogCli.register_service(payload)
+        
+        try:
+            self.catalogCli.register_service(self.service_payload)
+        except Exception as e:
+            debug_print(f"Initial registration failed: {e}")
 
-        #3. a parallel thread is needed to refresh the service until disconnection
         self.running = True
-        refresh_thread = threading.Thread(
-            target=self.loopRefresh,
-            daemon=True
-        )
+        refresh_thread = threading.Thread(target=self.loopRefresh, daemon=True)
         refresh_thread.start()
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
             debug_print("[MQTTActuatorBridge] Connected to MQTT broker.")
     
-    def on_message(self, client, userdata, msg): #it handles the command in JSON from the command publisher
-
+    def on_message(self, client, userdata, msg): 
         debug_print(f"\n[MQTTActuatorBridge] Message received on {msg.topic}")
 
         try:
             command = json.loads(msg.payload.decode("utf-8"))
         except json.JSONDecodeError:
-            feedback = {
-                "result": "error",
-                "message": "Invalid JSON received",
-                "timestamp": time.time()
-            }
-
-            self.publish_feedback(feedback, self.feedback_topic) #send an error message to publisher 
+            self.publish_feedback({"result": "error", "message": "Invalid JSON"}, self.feedback_topic) 
             return
 
         feedback = self.handle_command(command)
-
-        reply_to = command.get("reply_to", self.feedback_topic)
-
-        self.publish_feedback(feedback, reply_to)
+        self.publish_feedback(feedback, self.feedback_topic)
 
     def stop(self):
         self.running = False
@@ -117,113 +97,82 @@ class MQTTActuatorBridge: #Receives through MQTT some commands by CommandPublish
         self.client.disconnect()
 
     def loopRefresh(self):
-        
-        #each 60 sec refreshed in catalog
         while self.running:
             time.sleep(60)
             self.service_payload["time"] = time.time()
-        result = self.catalogCli.refresh_service(self.clientID, self.service_payload)
+            try:
+                self.catalogCli.refresh_service(self.clientID, self.service_payload)
+            except:
+                self.catalogCli.register_service(self.service_payload)
 
     def handle_command(self, command):
-        """
-        {
-            "command_id": "...",
-            "sender": "...",
-            "target": "lights" | "thermostat" | "blinds",
-            "room": "kitchen" | "living_room" | "bedroom",
-            "action": "set",
-            "value": ...,
-            "timestamp": ...,
-            "reply_to": "..."
-        }
-        """
-
-        command_id = command.get("command_id")
-        sender = command.get("sender")
-        target = command.get("target")
-        room = command.get("room")
-        action = command.get("action")
-        value = command.get("value")
-
-        
-        senml_payload = self.command_to_senml(
-            room=room,
-            target=target,
-            value=value
-        )
-
-        rest_response = self.send_to_rest_actuator(
-            room=room,
-            target=target,
-            senml_payload=senml_payload
-        )
-        
-        return {
-            "result": "ok",
-            "command_id": command_id,
-            "sender": sender,
-            "target": target,
-            "room": room,
-            "value": value,
-            "timestamp": time.time()
-        }
-
+        try:
+            event = command.get("e", [{}])[0]
+            resource_name = event.get("n", "")
+            
+            parts = resource_name.split("/")
+            if len(parts) >= 3:
+                room = parts[0]
+                target = parts[1]
+            else:
+                return {"result": "error", "message": "Malformed resource name"}
+                
+            value = event.get("v") if "v" in event else event.get("bv")
+            senml_payload = self.command_to_senml(room, target, value)
+            self.send_to_rest_actuator(room, target, senml_payload)
+            
+            return {
+                "result": "ok",
+                "target": target,
+                "room": room,
+                "value": value,
+                "timestamp": time.time()
+            }
+        except Exception as e:
+            return {"result": "error", "message": str(e), "timestamp": time.time()}
 
     def command_to_senml(self, room, target, value):
-        """
-        {
-            "bn": "/sensor/<room>",
-            "bt": time.time(),
-            "e": [
-                {
-                    "n": "<actuator>",
-                    "u": "<unit>",
-                    "v" oppure "bv": <value>
-                }
-            ]
-        }
-        """
-
         if target == "lights":
             event = {
                 "n": "lights",
                 "u": "boolean",
-                "bv": value
+                "bv": bool(int(value))
             }
-
         elif target == "thermostat":
             event = {
                 "n": "thermostat",
                 "u": "Celsius",
-                "v": value
+                "v": float(value)
             }
-
         elif target == "blinds":
             event = {
                 "n": "blinds",
-                "u": "%",
-                "v": value
+                "u": "% position",
+                "v": int(value)
             }
-
         else:
             raise ValueError(f"Unsupported actuator target: {target}")
 
         return {
             "bn": f"/sensor/{room}",
             "bt": time.time(),
-            "e": [
-                event
-            ]
+            "e": [event]
         }
 
     def send_to_rest_actuator(self, room, target, senml_payload):
         url = f"{self.rest_base_url}/{room}/{target}"
-        response = requests.post( url, json=senml_payload, timeout=5 )
+        response = requests.post(url, json=senml_payload, timeout=5)
+        response.raise_for_status()
         return response
 
+    def publish_feedback(self, feedback, feedback_topic):
+        self.client.publish(feedback_topic, json.dumps(feedback), qos=0)
 
-    def publish_feedback(self, feedback, feedback_topic): #it publish the feedback on the feedback_topic
-        self.client.publish(feedback_topic,json.dumps(feedback),qos=0)
-
-
-
+if __name__ == '__main__':
+    bridge = MQTTActuatorBridge()
+    try:
+        bridge.start()
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        bridge.stop()

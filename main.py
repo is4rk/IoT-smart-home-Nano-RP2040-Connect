@@ -3,9 +3,11 @@ from constants import PORT_NUMBER, HOST_NAME, CATALOG_URL, BROKER, PORT
 
 # REST Services
 from Catalog import Catalog
+from SmartHomeSensorService import SmartHomeSensorService
 
 # MQTT Bridges
 from MQTTCatalogBridge import MQTTCatalogBridge
+from MQTTActuatorBridge import MQTTActuatorBridge
 
 if __name__ == "__main__":
     conf = {
@@ -30,11 +32,19 @@ if __name__ == "__main__":
     print("[Main] Starting CherryPy server...")
     cherrypy.engine.start()
 
-    # 3. Start Background MQTT Catalog Bridge
+    # Mount services that register on the already-running catalog.
+    print("[Main] Mounting Smart Home Sensor Service...")
+    cherrypy.tree.mount(SmartHomeSensorService(), '/sensor', conf)
+
+    # 3. Start Background MQTT Bridges
     print("[Main] Starting MQTT Catalog Bridge...")
     
     catalog_bridge = MQTTCatalogBridge("catalog_bridge_group1", BROKER, PORT, CATALOG_URL)
     catalog_bridge.start()
+
+    print("[Main] Starting MQTT Actuator Bridge...")
+    actuator_bridge = MQTTActuatorBridge("actuator_bridge_group1", rest_base_url=f"{CATALOG_URL}/sensor")
+    actuator_bridge.start()
 
     # 4. Block main thread to keep everything running
     cherrypy.engine.block()

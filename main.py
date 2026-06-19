@@ -3,6 +3,7 @@ from constants import PORT_NUMBER, HOST_NAME, CATALOG_URL, BROKER, PORT
 
 # REST Services
 from Catalog import Catalog
+from EventLog import EventLog
 from SmartHomeSensorService import SmartHomeSensorService
 
 # MQTT Bridges
@@ -35,6 +36,9 @@ if __name__ == "__main__":
     # Mount services that register on the already-running catalog.
     print("[Main] Mounting Smart Home Sensor Service...")
     cherrypy.tree.mount(SmartHomeSensorService(), '/sensor', conf)
+
+    print("[Main] Mounting Event Log...")
+    cherrypy.tree.mount(EventLog(), '/log', conf)
 
     # 3. Start Background MQTT Bridges
     print("[Main] Starting MQTT Catalog Bridge...")

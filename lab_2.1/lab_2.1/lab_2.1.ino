@@ -8,7 +8,7 @@
  /* CONSTANTS */
 /*************/
 // How much to remove from char to get int. ASCII(0) = decimal 49
-const int INT_ASCII=48;
+const int INT_ASCII = 48;
 // Pin definitions
 const int RLED_PIN = A1;
 const int GLED_PIN = 2;
@@ -20,12 +20,16 @@ const int B = 4275;
 const long int R0 = 100000;
 const float VCC = 1023;
 // Timeout definitions
-const int TIMEOUT_MIC = 1000000;
-const int TIMEOUT_PIR = 3000;
-const int TIMEOUT_LCD = 10000;
+const int TIMEOUT_MIC = 40000;
+const int TIMEOUT_PIR = 30000;
+const int TIMEOUT_LCD = 10000; // Timeout to change the page shown on the display
+// Sound constants
+const int MAX_THRESHOLD = 800;
+const int N_SOUND_EVENTS = 800;
+const int SOUND_INTERVAL = 1000;
 // Other constants
 const int RB_SIZE = 16;
-const int DISPLAY_REFRESH_TIME = 1000;
+const int DISPLAY_REFRESH_TIME = 1000; // Delay to update infos shown on display
 
 //const int sound_threshold =;
 //const int sound_interval = ;
@@ -69,8 +73,8 @@ int ringBuffer[RB_SIZE];
 LiquidCrystal_PCF8574 lcd(0x27);
 // Timer interrupts
 MBED_RPI_PICO_Timer ITimer1(1);
-MBED_RPI_PICO_Timer ITimer2(1);
-MBED_RPI_PICO_Timer ITimer3(2);
+MBED_RPI_PICO_Timer ITimer2(2);
+MBED_RPI_PICO_Timer ITimer3(3);
 
   /*************/
  /* FUNCTIONS */
@@ -78,20 +82,20 @@ MBED_RPI_PICO_Timer ITimer3(2);
 
 // Microphone data ISR handler
 void onPDMdata(){
-  // 
+  // Check how many samples arrived
   int bytesAvailable = PDM.available();
-
   PDM.read(sampleBuffer, bytesAvailable);
   samplesRead = bytesAvailable / 2;
 
   if(samplesRead){
     for(int i = 0; i < samplesRead; i++){
-      if(abs(sampleBuffer[i])>800) {  //measured with fan on max speed 
+      // Register time of events with a significant value
+      if(abs(sampleBuffer[i]) > MAX_THRESHOLD) {  //measured with fan on max speed 
         ringBuffer[indexRB % RB_SIZE] = millis();
         indexRB++;
         
-        // If there are at least 10 data in the ring buffer and ...
-        if(indexRB >= 9 && (ringBuffer[(indexRB-1) % RB_SIZE]- ringBuffer[(indexRB-10) % RB_SIZE]) < 60){
+        // If there are at least 10 data in the ring buffer and the 10 events happened in less then SOUND_INTERVAL, presence is detected
+        if(indexRB >= (N_SOUND_EVENTS - 1) && (ringBuffer[(indexRB-1) % RB_SIZE]- ringBuffer[(indexRB-N_SOUND_EVENTS) % RB_SIZE]) < SOUND_INTERVAL){
           mic_detects_person = 1;
           resetMicrophoneTimer();
         }
@@ -101,39 +105,46 @@ void onPDMdata(){
   }
 }
 
+// Interrupt timers to reset people presence in the room, for the pir and the mic
 void timerDonePir(uint alarm_num){
   TIMER_ISR_START(alarm_num);
-  //se scade il timer, resetta le persone presenti nella stanza
+  // If timer ends, no person in the room
   pir_detects_person = 0;
-  // local_pdp = 0;
   TIMER_ISR_END(alarm_num);
 }
 
 void timerDoneMic(uint alarm_num){
   TIMER_ISR_START(alarm_num);
-  //se scade il timer, resetta le persone presenti nella stanza
+  // If timer ends, no person in the room
   mic_detects_person = 0;
-  // local_mdp = 0;
   TIMER_ISR_END(alarm_num);
 }
 
+// Set pir presence to true and reset timer to reset the person detection from the pir
 void foundPresencePir(){
   pir_detects_person=1;
   ITimer1.setInterval(TIMEOUT_PIR * 1000 , timerDonePir); 
 }
 
+// Reset person detection from the mic
+void resetMicrophoneTimer(){
+  ITimer2.setInterval(TIMEOUT_MIC * 1000 , timerDoneMic); 
+}
+
+// Functions to calculate fan speed and heater intensity proportionally to the set values passed
 int heaterIntensityCalc(float temp, float tmin, float tmax){
-  if(temp < tmin) return 255;
-  if(temp > tmax) return 0; 
+  if(temp <= tmin) return 255;
+  if(temp >= tmax) return 0; 
   return (int) (255.0 * (1.0 - ((temp - tmin) / (tmax - tmin))));
 }
 
 int fanSpeedCalc(float temp, float tmin, float tmax){
-  if (temp < tmin) return 0;
-  if (temp > tmax) return 255; 
+  if (temp <= tmin) return 0;
+  if (temp >= tmax) return 255; 
   return (int) (255.0 * (temp - tmin) / (tmax - tmin));
 }
 
+// Classic analog to °C temp converter
 float tempConverter(int a){
   float R = ((VCC/(float) a) - 1)*R0;
   float T = 1/((log( (float) R/ (float) R0)/ (float) B) + (1/298.15));
@@ -141,22 +152,14 @@ float tempConverter(int a){
   return T;
 }
 
-void resetMicrophoneTimer(){
-  ITimer2.setInterval(TIMEOUT_MIC * 1000 , timerDoneMic); 
-}
-
-
+// Interrupt timer to change the display shown on the lcd screen
 void lcdChangeState(uint alarm_num){
   TIMER_ISR_START(alarm_num);
   lcd_state =  !lcd_state;
-  ITimer3.setInterval(TIMEOUT_LCD * 1000 , lcdChangeState); // Redundant? ISR already set, resetting is not useful?
   TIMER_ISR_END(alarm_num);
 }
 
-void changeSetPoint(){
-  
-}
-
+// Display print function
 void printLcd(){
   //g.
   if(lcd_state){
@@ -165,7 +168,7 @@ void printLcd(){
     lcd.print("T:");
     lcd.print(temp);
     lcd.print(" Pres:");
-    lcd.print((int)(local_mdp));
+    lcd.print((int)(local_pdp||local_mdp));
     lcd.setCursor(0,1);
     lcd.print("AC:");
     lcd.print((int) (fanSpeed/255*100));
@@ -185,10 +188,29 @@ void printLcd(){
     lcd.print(local_pdp || local_mdp ? min_temp_heater_pers : min_temp_heater);
     lcd.print(" M:");
     lcd.print(local_pdp || local_mdp ?  max_temp_heater_pers : max_temp_heater);
-    if(local_pdp||local_mdp){
-      lcd.print(" pers");
-    }
   }
+}
+
+// Initialization print
+void printStart(){
+  Serial.println("  _____                      __ ");
+  Serial.println(" / ____|                    /_ |");
+  Serial.println("| |  __ _ __ ___  _   _ _ __ | |");
+  Serial.println("| | |_ | '__/ _ \\| | | | '_ \\| |");
+  Serial.println("| |__| | | | (_) | |_| | |_) | |");
+  Serial.println(" \\_____|_|  \\___/ \\__,_| .__/|_|");
+  Serial.println("                       | |      ");
+  Serial.println("                       |_|      ");
+  delay(100);
+  Serial.println("Serial will change the 4 current active set points (if people are in the room, will chage the pers values)");
+  delay(100);
+  Serial.println("Format: \"/xx xx xx xx/\" where x = digit");
+  Serial.println("/minAC maxAC minHT maxHT/");
+  delay(100);
+  Serial.println("Example:");
+  Serial.println("/10 14 09 13/");
+  Serial.println("if no people detected: min_temp_fan =10, max_temp_fan=14, min_temp_heater=09, max_temp_heater=13");
+  Serial.println("if people detected: min_temp_fan_pers =10, max_temp_fan_pers=14, min_temp_heater_pers=09, max_temp_heater_pers=13");
 }
 
   /*********/
@@ -208,9 +230,8 @@ void setup() {
   lcd.clear();  
   // Serial starting setup
   Serial.begin(9600);
-  if(!Serial){
-    Serial.println("Starting...");
-  }
+  while (!Serial);
+  Serial.println("Starting...");
   // Microphone starting setup
   PDM.onReceive(onPDMdata);
   if(!PDM.begin(1, 20000)){
@@ -222,52 +243,48 @@ void setup() {
   // Interrupts:
   // PIR interrupt
   attachInterrupt(digitalPinToInterrupt(PIR_PIN), foundPresencePir, CHANGE);
+
   // Timer interrupts start
   ITimer1.setInterval(TIMEOUT_PIR * 1000 , timerDonePir);
   ITimer2.setInterval(TIMEOUT_MIC * 1000 , timerDoneMic);
   ITimer3.setInterval(TIMEOUT_LCD * 1000 , lcdChangeState);
 
-  //h
-  Serial.begin(9600);
-  while(!Serial){
-    Serial.println("Doesnt print");
-  }
-  Serial.println("Serial will change the 4 current active set points (if people are in the room, will chage the pers values)");
-  Serial.println("Format:");
-  Serial.println("/10 14 09 13/");
-  Serial.println("if no people detected: min_temp_fan =10, max_temp_fan=14, min_temp_heater=09, max_temp_heater=13");
-  Serial.println("if people detected: min_temp_fan_pers =10, max_temp_fan_pers=14, min_temp_heater_pers=09, max_temp_heater_pers=13");
+  printStart();
 }
+
 
   /*********/
  /* LOOPS */
 /*********/
 // Main loop:
 void loop() {
+  //c.
+  noInterrupts();
+  // Update presence without interupt conflicts
+  local_pdp = pir_detects_person;
+  local_mdp = mic_detects_person;
+  interrupts();
+
   // a.
   int x = analogRead(TEMP_PIN);
   temp = tempConverter(x);
   
-  if(mic_detects_person || pir_detects_person){
+  // Change set point values if we detect people in the room
+  if(local_mdp || local_pdp){
     fanSpeed = fanSpeedCalc(temp, (float) min_temp_fan_pers, (float) max_temp_fan_pers);
   } else {
-    fanSpeed = fanSpeedCalc(temp, (float) max_temp_fan, (float) max_temp_fan);
+    fanSpeed = fanSpeedCalc(temp, (float) min_temp_fan, (float) max_temp_fan);
   }
   analogWrite(FAN_PIN, fanSpeed);
 
   // b. 
-  if(mic_detects_person || pir_detects_person){
+  // Change set point values if we detect people in the room
+  if(local_mdp || local_pdp){
     heaterIntensity = heaterIntensityCalc(temp, (float) min_temp_heater_pers , (float) max_temp_heater_pers);
   } else {
     heaterIntensity = heaterIntensityCalc(temp, (float) min_temp_heater , (float) max_temp_heater);
   }
   analogWrite(RLED_PIN, heaterIntensity);
-
-  //c.
-  noInterrupts();
-  local_pdp = pir_detects_person;
-  local_mdp = mic_detects_person;
-  interrupts();
 
   // Lcd screen
   printLcd();
@@ -277,17 +294,20 @@ void loop() {
 //Serial listener loop:
 void loop2(){
   //h.
-  yield();
   if(Serial.available()>0){
+    // Format: "/xx xx xx xx/" where x = digit
     char entranceByte=Serial.read();
     char charBytes[12];
+
     if(entranceByte=='/'){
       int i=0;
       while((entranceByte=Serial.read())!='/' && i<12){
         charBytes[i]=entranceByte;
         i++;
       }
-      if(mic_detects_person || pir_detects_person){
+
+      // Change set point values
+      if(local_mdp || local_pdp){
         min_temp_fan_pers = ((int) charBytes[0]-INT_ASCII)*10+((int) charBytes[1]-INT_ASCII);
         max_temp_fan_pers = ((int) charBytes[3]-INT_ASCII)*10+((int) charBytes[4]-INT_ASCII);
         min_temp_heater_pers = ((int) charBytes[6]-INT_ASCII)*10+((int) charBytes[7]-INT_ASCII);
@@ -301,4 +321,5 @@ void loop2(){
       } 
     }
   }
+  yield();
 }

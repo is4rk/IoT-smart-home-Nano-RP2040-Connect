@@ -4,7 +4,7 @@ import requests
 import time
 from constants import *
 
-DEBUG = False
+DEBUG = True
 
 
 def debug_print(message):

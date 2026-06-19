@@ -5,10 +5,10 @@
 #include <ArduinoHttpClient.h>
 #include <MBED_RPi_Pico_TimerInterrupt.h>
 #include <list>
-#define DEBUG 0
+#define DEBUG 1
 #define USERNAME "arduino"
 #define BASE_NAME "ArduinoGroup1"
-#define HOST_NAME "192.168.1.97" //set to server ip
+#define HOST_NAME "10.35.244.215" //set to server ip
 #define PORT_NUMB 8080
 
 //So that i can avoid doing std::list
@@ -19,7 +19,7 @@ char ssid[] = SECRET_SSID;
 char pass[] = SECRET_PASS;
 
 // Unique topic start
-const String BASE_TOPIC = "/tiot/group1";
+const String BASE_TOPIC = "tiot/group1";
 const String ID = "/arduino";
 // Pins:
 const int TEMP_PIN = A1;
@@ -34,7 +34,7 @@ String REFRESH_DEVICE_TOPIC = BASE_TOPIC+"/catalog/devices/refresh";
 // Not tested with public broker
 // Broker address:
 String broker_address = "test.mosquitto.org";;
-int broker_port= 1883;
+int broker_port= 1883; 
 
 
 // Temperature conversion constants:
@@ -45,7 +45,7 @@ float temp = 0;
 
 // Two global objects to store the sent and received JSON strings
 // Capacity more then 1 SenML record
-const int capacity = JSON_OBJECT_SIZE(2) + JSON_ARRAY_SIZE(1) + JSON_OBJECT_SIZE(4) + 100;
+const int capacity = JSON_OBJECT_SIZE(2) + JSON_ARRAY_SIZE(1) + JSON_OBJECT_SIZE(4) + 10000;
 DynamicJsonDocument doc_snd(capacity);
 DynamicJsonDocument doc_rec(capacity);
 
@@ -127,8 +127,8 @@ void callback(char* topic, byte* payload, unsigned int length){
 		Serial.print(F("deserializeJson() failed with code "));
 		Serial.println(err.c_str());
 	}
-	client.setServer(broker_address.c_str(), broker_port);
-    client.setCallback(callback);
+	// client.setServer(broker_address.c_str(), broker_port);
+  // client.setCallback(callback);
 	// Estract actuation information to use 
 	const char* name = doc_rec["e"][0]["n"];
 	int value = doc_rec["e"][0]["v"];
@@ -160,10 +160,13 @@ float tempConverter(int a){
 }
 
 void registerDevice() {
+	if(DEBUG){
+		Serial.println("Trying register device");
+	}
 	doc_snd.clear();
 	doc_snd["id"] = USERNAME;
 	doc_snd["description"] = "Arduino temperature sensor and LED actuator";
-	doc_snd["endpoint"] = "http://" + String(HOST_NAME) + ":" + String(PORT_NUMB);
+	doc_snd["endpoint"] = "http://" + String(HOST_NAME) + ":" + String(PORT_NUMB); //TODO check if we should put host name or our name
 	
 	JsonObject mqtt = doc_snd.createNestedObject("mqtt");
 	mqtt["ip"] = broker_address;
@@ -174,10 +177,14 @@ void registerDevice() {
 	
 	JsonArray sub_topics = mqtt.createNestedArray("sub_topics");
 	sub_topics.add(BASE_TOPIC+"/"+USERNAME+"/commands/led");
-	JsonArray resources = doc_snd.createNestedArray("resources");
+	JsonArray resources = doc_snd["resources"].to<JsonArray>();	
 	resources.add("temperature");
 	resources.add("led");
 	doc_snd["time"] = millis(); // Alternatively, you can sync via NTP if real epoch time is required
+	if(DEBUG){
+		Serial.println("Should have registered");
+	}
+
 }
 
 void reconnect() {
@@ -188,9 +195,10 @@ void reconnect() {
 			Serial.print(":");
 			Serial.println(broker_port);
 		}
-
+		Serial.println("3.1");
 		// Try connecting to the broker with username [USERNAME] 
 		if(client.connect(USERNAME)) {
+					Serial.println("3.2");
 			Serial.println("MQTT connected");
 			// If connected, subscribe to topic [BASE_TOPIC]/led
 			// To receive actuation commands
@@ -213,15 +221,24 @@ void reconnect() {
 }
 
 void retriveTopic(list<String>& topics){
+	Serial.println("2.01");
 	topics.clear();
+	Serial.println("2.02");
+
 	String devTopicsStr;
+	Serial.println("2.03");
+
 	GET(devTopicsStr, "/devices");
+
+		Serial.println("2.05");
+
 	DeserializationError err = deserializeJson(doc_rec, devTopicsStr);
 	if (err){
 		Serial.print(F("deserializeJson() failed with code "));
 		Serial.println(err.c_str());
 	}
-	
+		Serial.println("2.1");
+
 	for(JsonPair keyVal : doc_rec.as<JsonObject>()){	 
 		JsonArray topicsJ = keyVal.value()["mqtt"]["sub_topics"];
 		for(JsonVariant topicJ : topicsJ){
@@ -229,6 +246,7 @@ void retriveTopic(list<String>& topics){
 			topics.push_back(topicStr);
 		}
 	}
+	Serial.println("2.2");
 
 	String serTopicsStr;
 	GET(serTopicsStr, "/services");
@@ -238,6 +256,7 @@ void retriveTopic(list<String>& topics){
 		Serial.print(F("deserializeJson() failed with code "));
 		Serial.println(err.c_str());
 	}
+		Serial.println("2.3");
 
 	for(JsonPair keyVal : doc_rec.as<JsonObject>()){	 
 		JsonArray topicsJ= keyVal.value()["mqtt"]["sub_topics"];
@@ -246,6 +265,8 @@ void retriveTopic(list<String>& topics){
 			topics.push_back(topicStr);
 		}
 	}
+		Serial.println("2.4");
+
 }
 
 void setup() {
@@ -270,20 +291,30 @@ void setup() {
 	//Gets broker info
 	String body;
 	GET(body, "/broker");
+	Serial.println("0");
 	DeserializationError err = deserializeJson(doc_rec, body);
 	if (err){
 		Serial.print(F("deserializeJson() failed with code "));
 		Serial.println(err.c_str());
 	}
+	Serial.println("1");
+
 	broker_address = doc_rec["ip"].as<String>();
 	broker_port = doc_rec["port"].as<int>();
-	
+  client.setServer(broker_address.c_str(), broker_port);
+  client.setCallback(callback);
+	Serial.println("2");
+
+	retriveTopic(topics);
+
 	//Starts topics sub timer
 	ITimer1.setInterval(120000, refreshSub);
-	retriveTopic(topics);
+	Serial.println("2.5");
 
 	//Starts refresh timer
 	ITimer2.setInterval(60000, refreshReg);
+	Serial.println("3");
+
 }
 
 // Main loop:
@@ -291,6 +322,7 @@ void loop() {
 	// Last message time to have a non blocking delay
 	static unsigned long lastMsg = 0;
 	// Check the connection to the broker
+	Serial.println("HELLLOO");
 	if(client.state() != MQTT_CONNECTED) {
 		// Reconnect if needed
 		if(DEBUG) Serial.println("Client disconnected, reconnecting...");

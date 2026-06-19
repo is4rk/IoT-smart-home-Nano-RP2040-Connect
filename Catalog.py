@@ -10,9 +10,6 @@ class Catalog:
         
         # Automatically initializes the file structure if it's missing or empty
         try:
-            with open(self.json_file_name, "r") as f:
-                json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
             with open(self.json_file_name, "w") as f:
                 # Pre-populates
                 default_skeleton = {
@@ -21,7 +18,8 @@ class Catalog:
                     "services": {}
                 }
                 json.dump(default_skeleton, f, indent=4)
-                
+        except:
+            print("error")
         # Starts cleanup background thread
         threading.Thread(target=self._cleanup_loop, daemon=True).start()
     

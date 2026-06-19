@@ -3,5 +3,3 @@
 .tmp/
 .tmp
 
-# Ignore Arduino secrets file
-arduino_secrets.h

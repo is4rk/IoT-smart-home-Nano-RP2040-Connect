@@ -1,9 +1,12 @@
+# Exercise 4 and 12: Event Log Service which implements both REST and MQTT, so that both REST services and MQTT clients
+# are able to interact with this.
+
 import cherrypy
 import json
 import time
+import paho.mqtt.client as PahoMQTT
 from CatalogClient import CatalogClient
 from threading import Lock, Thread
-import paho.mqtt.client as PahoMQTT
 from SmartHomeSensorService import controlSenML
 from constants import *
 
@@ -11,32 +14,38 @@ queries = ["room", "since", "before", "type"]
 
 class EventLog():
     exposed = True
-   
+    
+    # Init of the class
     def __init__(self, clientID="event_log"):
         self.clientID = clientID
         self.logs = []
+        self.next_id = 1
+
+        #MQTT thread attributes and useful things
         self.lock = Lock()
         self.catalog_url = CATALOG_URL
         self.broker = BROKER
         self.port = PORT
         self.mqtt_started = False
-        self.next_id = 1
-
         self.interval = 60
         self.ack = False
         self.client = PahoMQTT.Client(client_id=self.clientID)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.last_response=None
+
+        # Start MQTT thread when creating the object
         self.start()
 
     # MQTT
 
+    # Start connection to the broker, start listening and start thread
     def start(self):
         self.client.connect(self.broker, self.port, keepalive=60)
         self.client.loop_start()
         Thread(target=self.loopRefresh, daemon=True).start()
 
+    # Thread loop to refresh registration to the catalog
     def loopRefresh(self):
         print("[EventLog] Refresh loop started.")
         while True:
@@ -48,19 +57,21 @@ class EventLog():
             except Exception as e:
                 print(f"[EventLog] Refresh failed: {e}")
 
+    # Stop MQTT 
     def stop(self):
         self.client.loop_stop()
         self.client.disconnect()
 
+    # On connect callback, register to catalog and subscribes to log topic to listen incoming MQTT log messages
     def on_connect(self, client, userdata, flags, rc):
-        self.client.subscribe(f"{BASE_TOPIC}/log")
-
         service = self.build_service_payload()
         self.client.publish(REGISTRATION_SERVICES_TOPIC, json.dumps(service))
+        self.client.subscribe(f"{BASE_TOPIC}/log")
     
+    # On message callback, handles the message to try extract SenML informations
     def on_message(self, client, userdata, msg):
-        # Ingest SenML payloads from MQTT; normalize similar to POST handling
         raw = msg.payload
+        # Lots of decode to read the data properly
         if isinstance(raw, (bytes, bytearray)):
             try:
                 raw = raw.decode("utf-8")
@@ -68,12 +79,12 @@ class EventLog():
                 return
 
         try:
-            # unwrap repeatedly in case of double-encoded JSON
             while isinstance(raw, str):
                 raw = json.loads(raw)
         except Exception:
             return
 
+        # Check if it's a single SenML entry or a list
         records = []
         if isinstance(raw, dict):
             records = [raw]
@@ -82,6 +93,7 @@ class EventLog():
         else:
             return
 
+        # Check if valid SenML, then add it if ok
         added = 0
         for rec in records:
             try:
@@ -100,11 +112,12 @@ class EventLog():
         if added:
             self.last_response = f"Added {added} records from MQTT"
 
+    # Function to build the catalog registration payload
     def build_service_payload(self):
         return {
             "id": self.clientID,
             "description": "Event Log Service",
-            "endpoint": f"{CATALOG_URL}/log",
+            "endpoint": f"http://{HOST_NAME}:{PORT}/log",
             "mqtt": {
                 "ip": self.broker,
                 "port": self.port,
@@ -117,11 +130,13 @@ class EventLog():
 
     # REST 
 
+    # GET handler, can be all logs or queried
     def GET(self, *path, **query):
         # requesting all logs or filtering by query
         if (len(path) == 0):
             # GET /log
             if (len(query) == 0):
+                # There is a thread, if list is used to a copy or lock
                 with self.lock:
                     snapshot = list(self.logs)
                 return json.dumps(snapshot)
@@ -135,6 +150,7 @@ class EventLog():
             with self.lock:
                 snapshot = list(self.logs)
 
+            # This is the query checking and handling
             for event in snapshot:
                 keep = True
                 for q in query:
@@ -172,9 +188,10 @@ class EventLog():
 
         # Error handling 
         raise cherrypy.HTTPError(400, "Bad request: no services avaliable")
-
+    
+    # POST: appending one or more SenML events in the log
     def POST(self, *path):
-        # appending one or more SenML events in the log
+        # even here there is decoding and data validation
         # POST /log
         if(len(path) == 0):
             raw = cherrypy.request.body.read()
@@ -212,7 +229,8 @@ class EventLog():
             return ("Events registered: " + str(added))
         else:
             raise cherrypy.HTTPError(400, "Bad request: no services avaliable")
-        
+    
+    # DELETE: delete all logs or logs before a value
     def DELETE(self, *path, **query):
         if (len(path) == 0):
             # purging entries before a defined epoch
@@ -223,11 +241,10 @@ class EventLog():
                 if "before" not in query:
                     raise cherrypy.HTTPError(400, "Bad request: no services avaliable")
                 
-                events_to_remove = []
                 with self.lock:
                     initial_count = len(self.logs)
                     before_epoch = float(query["before"])
-                    # Mantiene solo gli eventi che NON devono essere rimossi
+                    # Atomic operation on the list filtering the events before the query
                     self.logs = [event for event in self.logs if float(event["bt"]) >= before_epoch]
                     count = initial_count - len(self.logs)
                     return f"Entries deleted: {count}"

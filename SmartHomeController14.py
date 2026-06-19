@@ -10,11 +10,13 @@ from CatalogClient import CatalogClient
 from constants import BASE_TOPIC, BROKER, CATALOG_URL, PORT
 
 
-CONFIG_FILE = "smart_home_controller_config_14.json"
+CONFIG_FILE = "smart_home_controller_v2_config.json"
 
+# lab sw3, for the control managment 
 
 class SmartHomeControllerV2:
     def __init__(self, config_file=CONFIG_FILE):
+        # it initializes the controller v2 state and loads the rule parameters
         with open(config_file, "r") as f:
             self.config = json.load(f)
 
@@ -31,6 +33,7 @@ class SmartHomeControllerV2:
         self.noise_state = defaultdict(lambda: False)
         self.last_temperature = {}
 
+        # fallback topics are used before the catalog starts to discover the real actuators
         self.command_topics = {
             name: {topic}
             for name, topic in self.config["fallback_command_topics"].items()
@@ -42,6 +45,7 @@ class SmartHomeControllerV2:
         self.client.on_message = self.on_message
 
     def start(self):
+        # starts catalog discovery, service registration and the MQTT client
         broker_info = self.catalog.get_broker()
         self.broker = broker_info.get("ip", self.broker)
         self.port = int(broker_info.get("port", self.port))
@@ -57,11 +61,13 @@ class SmartHomeControllerV2:
         self.client.loop_start()
 
     def stop(self):
+        # it stops the background MQTT loop and  disconnects the client
         self.running = False
         self.client.loop_stop()
         self.client.disconnect()
 
     def register_service(self):
+        # this registers or  refreshes this controller as a catalog service
         payload = self.build_service_payload()
         try:
             self.catalog.register_service(payload)
@@ -69,6 +75,7 @@ class SmartHomeControllerV2:
             self.catalog.refresh_service(self.client_id, payload)
 
     def build_service_payload(self):
+        # builds the catalog profile describing the controller
         pub_topics = sorted({topic for topics in self.command_topics.values() for topic in topics})
         pub_topics.append(f"{self.config['alert_topic_base']}/+/temperature")
         return {
@@ -93,6 +100,7 @@ class SmartHomeControllerV2:
         }
 
     def registration_loop(self):
+        # keeps the service alive in the catalog by refreshing it periodically
         while self.running:
             time.sleep(float(self.config["registration_refresh_seconds"]))
             try:
@@ -101,11 +109,13 @@ class SmartHomeControllerV2:
                 print(f"[Controller14] Catalog refresh failed: {e}")
 
     def catalog_poll_loop(self):
+        # checks the catalog again from to find new devices
         while self.running:
             time.sleep(float(self.config["catalog_poll_seconds"]))
             self.refresh_catalog_topics()
 
     def refresh_catalog_topics(self):
+        # it discovers sensor topics and actuator command topics from the catalog
         try:
             devices = self.catalog.get_devices()
         except Exception as e:
@@ -117,10 +127,12 @@ class SmartHomeControllerV2:
 
         for device in devices or []:
             mqtt = device.get("mqtt", {})
+            # sensor publications are subscribed so the controller can receive events
             for topic in mqtt.get("pub_topics", []):
                 if any(word in topic for word in ("temperature", "presence", "motion", "noise")):
                     self.subscribe(topic)
 
+            # actuator subscription topics become command topics for this controller
             for topic in mqtt.get("sub_topics", []):
                 lowered = topic.lower()
                 if "led" in lowered:
@@ -136,6 +148,7 @@ class SmartHomeControllerV2:
             self.subscribe(f"{BASE_TOPIC}/+/{sensor}")
 
     def subscribe(self, topic):
+        # it adds one topic to the subscription set, avoiding duplicates
         if topic in self.subscribed_topics:
             return
         self.subscribed_topics.add(topic)
@@ -144,11 +157,13 @@ class SmartHomeControllerV2:
         print(f"[Controller14] Subscribed to {topic}")
 
     def on_connect(self, client, userdata, flags, rc):
+        # subscribes again after connection because subscriptions may be lost
         print(f"[Controller14] Connected to MQTT broker with rc={rc}")
         for topic in self.subscribed_topics:
             self.client.subscribe(topic, qos=0)
 
     def on_message(self, client, userdata, msg):
+        # make MQTT messages as JSON and handles the SenML record
         try:
             payload = json.loads(msg.payload.decode("utf-8"))
         except json.JSONDecodeError:
@@ -160,6 +175,7 @@ class SmartHomeControllerV2:
             self.handle_senml_record(msg.topic, record)
 
     def handle_senml_record(self, topic, record):
+        # it address each SenML event to the correct handler
         if not isinstance(record, dict) or "e" not in record:
             return
 
@@ -174,6 +190,7 @@ class SmartHomeControllerV2:
                 self.handle_noise(room, bool(event.get("bv", event.get("v", False))))
 
     def room_from_record(self, topic, record):
+        # it takes  the rooms from the SenML base name or from the MQTT topic
         bn = str(record.get("bn", ""))
         parts = [part for part in bn.split("/") if part]
         if len(parts) >= 2 and parts[0] == "sensor":
@@ -184,6 +201,7 @@ class SmartHomeControllerV2:
         return self.config["default_room"]
 
     def handle_temperature(self, room, value):
+        # it  stores the last temperature and updates the  statistics
         self.last_temperature[room] = value
         window = self.temperature_windows[room]
         window.append(value)
@@ -199,17 +217,20 @@ class SmartHomeControllerV2:
             self.publish_alert(room, value, stats)
 
     def handle_presence(self, room, value):
+        # it updates presence, also considering previous noise detections
         self.presence_state[room] = value or self.noise_state[room]
         print(f"[Controller14] {room} presence={self.presence_state[room]}")
         self.apply_remote_policy(room)
 
     def handle_noise(self, room, value):
+        # uses noise as an additional  indicatator that somebody may be present
         self.noise_state[room] = value
         self.presence_state[room] = value or self.presence_state[room]
         print(f"[Controller14] {room} noise={value}")
         self.apply_remote_policy(room)
 
     def apply_remote_policy(self, room):
+        # it  computes actuator commands using temperature and information abotu presenxe
         if room not in self.last_temperature:
             return
 
@@ -228,6 +249,7 @@ class SmartHomeControllerV2:
         self.publish_lcd(room, temperature, presence, fan, heater)
 
     def linear_fan(self, temp, tmin, tmax):
+        # converts temperature into a fan PWM value between 0 and 255
         if temp <= tmin:
             return 0
         if temp >= tmax:
@@ -235,6 +257,7 @@ class SmartHomeControllerV2:
         return int(255.0 * (temp - tmin) / (tmax - tmin))
 
     def linear_heater(self, temp, tmin, tmax):
+        # converts temperature into a heater PWM value between 255 an 0
         if temp <= tmin:
             return 255
         if temp >= tmax:
@@ -242,6 +265,7 @@ class SmartHomeControllerV2:
         return int(255.0 * (1.0 - ((temp - tmin) / (tmax - tmin))))
 
     def publish_command(self, target, value, unit):
+        # publishes a command for one actuator type on every known topic
         payload = {
             "bn": self.client_id,
             "e": [
@@ -258,6 +282,7 @@ class SmartHomeControllerV2:
             print(f"[Controller14] {target}={value} published on {topic}")
 
     def publish_lcd(self, room, temperature, presence, fan, heater):
+        # sends a  status message to the LCD 
         message = f"{room} T:{temperature:.1f} P:{int(presence)} F:{int(fan/255*100)} H:{int(heater/255*100)}"
         payload = {
             "bn": self.client_id,
@@ -275,6 +300,7 @@ class SmartHomeControllerV2:
             print(f"[Controller14] LCD message published on {topic}: {message}")
 
     def publish_alert(self, room, temperature, stats):
+        # publishes a temperature alert of current statistics
         topic = f"{self.config['alert_topic_base']}/{room}/temperature"
         payload = {
             "bn": f"/alerts/{room}",
@@ -293,6 +319,7 @@ class SmartHomeControllerV2:
 
 
 if __name__ == "__main__":
+    # runs the controller v2 as a standalone script
     controller = SmartHomeControllerV2()
     controller.start()
     try:

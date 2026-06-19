@@ -23,7 +23,7 @@ class MQTTActuatorCommandPublisher:
         self.url= url
 
         #getting broker infos using a CataloClient
-        self.catalogCli = CatalogClient(f"{url}/broker")
+        self.catalogCli = CatalogClient(url)
         response = self.catalogCli.get_broker()
         metadata = response.json() if hasattr(response, 'json') else response
         self.broker = metadata["ip"]
@@ -152,12 +152,12 @@ class MQTTActuatorCommandPublisher:
                     room = parts[1]
                     value = parts[2]
 
-                    if room not in constants.constants.constants.rooms: #constants.constants.rooms defined in constants
+                    if room not in constants.rooms: #constants.rooms defined in constants
                         print(f"Invalid room: {room}. Valid constants.rooms: {constants.rooms}\n")
                         continue
 
     
-                    if value not in [0,1]:
+                    if value not in ["0","1"]:
                         print("Invalid lights value. Use 0 or 1.\n")
                         continue
 
@@ -218,7 +218,7 @@ class MQTTActuatorCommandPublisher:
                     rawValue = parts[2]
 
                     if room not in constants.rooms:
-                        print(f"Invalid room: {room}. Valid constants.constants.rooms: {constants.constants.rooms}\n")
+                        print(f"Invalid room: {room}. Valid constants.rooms: {constants.rooms}\n")
                         continue
 
                     try:

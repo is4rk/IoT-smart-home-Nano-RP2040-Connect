@@ -46,7 +46,10 @@ class SmartHomeSensorService():
             try:
                 id = random.randint(1, 100)
                 actuatorServiceID = f"actuator_service_{id}"
-                self.catalog_client.refresh_service(actuatorServiceID)
+                self.catalog_client.refresh_service(
+                    self.service_payload["id"],
+                    self.service_payload
+                )
             except Exception as e:
                 print(f"WARNING: could not refresh registration, retrying next cycle: {e}")
 

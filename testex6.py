@@ -16,7 +16,7 @@ def start_heartbeat_loop(client, service_id):
 
 if __name__ == "__main__":
     # 1. Initialize client pointing to your local Catalog registry
-    client = CatalogClient("http://localhost:8080")
+    client = CatalogClient(CATALOG_URL)
     
     # 2. Define a fake service payload to register 
     my_service_id = "thermostat_service_01"

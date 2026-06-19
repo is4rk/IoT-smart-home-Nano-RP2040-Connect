@@ -107,7 +107,7 @@ class TempSenseMQTT:
         }
 
 if __name__ == "__main__":
-    sensor = TempSenseMQTT(url="http://127.0.0.1:8080", clientID="temp_sensor_livingroom")
+    sensor = TempSenseMQTT(url=CATALOG_URL, clientID="temp_sensor_livingroom")
     sensor.start()
     
     try:

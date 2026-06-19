@@ -26,7 +26,7 @@ class DeviceMQTTClient:
         return {
             "id": self.clientID,
             "description": f"{device_type} in {room}",
-            "endpoint": f"http://localhost:8080/{room}/{device_type}",
+            "endpoint": f"{CATALOG_URL}/{room}/{device_type}",
             "mqtt": {
                 "ip": self.broker,
                 "port": self.port,

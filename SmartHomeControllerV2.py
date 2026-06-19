@@ -37,7 +37,6 @@ class SmartHomeControllerV2:
         self.command_topics = {
             name: {topic}
             for name, topic in self.config["fallback_command_topics"].items()
-            if not name.startswith("_comment_")
         }
         self.subscribed_topics = set()
 

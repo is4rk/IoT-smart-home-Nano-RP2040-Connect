@@ -1,59 +1,33 @@
 {
-    "_comment_file": "configuration values for the exercise 14 controller v2",
     "controller_id": "integrated_smart_home_controller_v2",
-    "_comment_temperature_threshold": "comfort threshold used by the LED rule",
     "temperature_threshold": 26.0,
-    "_comment_alert_temperature_threshold": "temperature value used to publish alert messages",
     "alert_temperature_threshold": 30.0,
-    "_comment_stats_window_size": "number of temperature samples used for rolling statistics",
     "stats_window_size": 10,
-    "_comment_default_room": "room used when the received message does not specify one",
     "default_room": "kitchen",
-    "_comment_default_presence": "initial presence value before receiving presence or motion events",
     "default_presence": false,
-    "_comment_fan_no_presence": "fan range used when nobody is detected in the room",
     "fan_no_presence": {
-        "_comment_min": "temperature where the fan starts when no presence is detected",
         "min": 25.0,
-        "_comment_max": "temperature where the fan reaches maximum speed when no presence is detected",
         "max": 30.0
     },
-    "_comment_heater_no_presence": "heater range used when nobody is detected in the room",
     "heater_no_presence": {
-        "_comment_min": "temperature where the heater is still at maximum power without presence",
         "min": 15.0,
-        "_comment_max": "temperature where the heater becomes off without presence",
         "max": 20.0
     },
-    "_comment_fan_presence": "fan range used when presence is detected",
     "fan_presence": {
-        "_comment_min": "temperature where the fan starts when presence is detected",
         "min": 20.0,
-        "_comment_max": "temperature where the fan reaches maximum speed when presence is detected",
         "max": 25.0
     },
-    "_comment_heater_presence": "heater range used when presence is detected",
     "heater_presence": {
-        "_comment_min": "temperature where the heater is at maximum power with presence",
         "min": 5.0,
-        "_comment_max": "temperature where the heater becomes off with presence",
         "max": 10.0
     },
-    "_comment_alert_topic_base": "base MQTT topic used for temperature alerts",
     "alert_topic_base": "tiot/group1/alerts",
-    "_comment_fallback_command_topics": "default actuator topics used before catalog discovery",
     "fallback_command_topics": {
-        "_comment_led": "fallback topic used for LED commands",
         "led": "tiot/group1/arduino_group1/commands/led",
-        "_comment_fan": "fallback topic used for fan commands",
         "fan": "tiot/group1/arduino_group1/commands/fan",
-        "_comment_heater": "fallback topic used for heater commands",
         "heater": "tiot/group1/arduino_group1/commands/heater",
-        "_comment_lcd": "fallback topic used for LCD  messages",
         "lcd": "tiot/group1/arduino_group1/commands/lcd"
     },
-    "_comment_registration_refresh_seconds": "how often the controller refreshes its catalog service",
     "registration_refresh_seconds": 60,
-    "_comment_catalog_poll_seconds": "how often the controller checks the catalog for new MQTT topics",
     "catalog_poll_seconds": 30
 }

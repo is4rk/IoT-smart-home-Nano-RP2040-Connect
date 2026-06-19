@@ -16,11 +16,11 @@ def debug_print(message):
 
 class MQTTActuatorBridge:
    
-    def __init__(self, clientID="actuator_bridge", rest_base_url="http://localhost:8081/sensor"):
+    def __init__(self, clientID="actuator_bridge", rest_base_url="http://localhost:8081/sensor"): 
         self.clientID = clientID
         self.catalog_url = constants.CATALOG_URL
         self.catalogCli = CatalogClient(self.catalog_url)
-        self.rest_base_url = rest_base_url
+        self.rest_base_url = rest_base_url #fake url used to fill snml and json
         self.feedback_topic = constants.ACTUATOR_FEEDBACK_TOPIC
 
         # get broker infos
@@ -28,7 +28,7 @@ class MQTTActuatorBridge:
         self.broker = broker_info["ip"]
         self.port = int(broker_info["port"])
 
-        self.rooms = constants.rooms
+        self.rooms = constants.rooms #just some fluff text to fill snml
         self.actuators = constants.actuators
         self.running = False 
 
@@ -107,7 +107,7 @@ class MQTTActuatorBridge:
 
     def handle_command(self, command):
         try:
-            event = command.get("e", [{}])[0]
+            event = command.get("e", [{}])[0] #safely extracts the first dictionary from a list of event data, it falls back to a list [] containing empty dict {} if [0] doesnt exist
             resource_name = event.get("n", "")
             
             parts = resource_name.split("/")
@@ -162,7 +162,7 @@ class MQTTActuatorBridge:
     def send_to_rest_actuator(self, room, target, senml_payload):
         url = f"{self.rest_base_url}/{room}/{target}"
         response = requests.post(url, json=senml_payload, timeout=5)
-        response.raise_for_status()
+        response.raise_for_status() #raise HTTP error in case
         return response
 
     def publish_feedback(self, feedback, feedback_topic):

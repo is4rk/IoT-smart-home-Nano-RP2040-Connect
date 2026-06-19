@@ -75,6 +75,7 @@ class TempSenseMQTT:
                     }
                 ]
                 self.client.publish(self.temperature_topic, json.dumps(senml))
+                self.client.publish(f"{BASE_TOPIC}/log", json.dumps(senml))
                 print(f"[Sensor] Telemetry sent: {round(temp, 2)}°C")
 
                 # 2. Send Heartbeat

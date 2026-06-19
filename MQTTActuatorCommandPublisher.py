@@ -19,7 +19,7 @@ class MQTTActuatorCommandPublisher:
 
     def __init__(self, clientID, url):
         self.clientID = clientID
-        self.client = PahoMQTT.Client(clientID) #ex command_pub_001
+        self.client = PahoMQTT.Client(client_id=clientID) #ex command_pub_001
         self.url= url
 
         #getting broker infos using a CataloClient
@@ -34,6 +34,37 @@ class MQTTActuatorCommandPublisher:
         self.client.on_connect = self.on_connect  # sets the function called when the bridge connects to the broker
         self.client.on_message = self.on_message  # sets the function called when the bridge receives a message        
 
+    def _catalog_values(self, catalog_section):
+        if isinstance(catalog_section, dict):
+            return list(catalog_section.values())
+        return catalog_section or []
+
+    def _find_arduino_device(self, devices):
+        for device in devices:
+            mqtt = device.get("mqtt", {})
+            topics = mqtt.get("sub_topics", []) + mqtt.get("pub_topics", [])
+            resources = device.get("resources", [])
+            if "arduino" in device.get("id", "").lower():
+                return device
+            if "led" in resources or any("led" in topic for topic in topics):
+                return device
+        return None
+
+    def _find_actuator_service(self, services):
+        for service in services:
+            mqtt = service.get("mqtt", {})
+            topics = mqtt.get("sub_topics", []) + mqtt.get("pub_topics", [])
+            if "actuator" in service.get("id", "").lower():
+                return service
+            if any("actuator" in topic for topic in topics):
+                return service
+        return None
+
+    def _first_topic_containing(self, registration, direction, word):
+        mqtt = registration.get("mqtt", {})
+        topics = mqtt.get(direction, [])
+        return next((topic for topic in topics if word in topic), None)
+
     def start(self): # Initialize a loop is needed because  MQTT clients must continuously process datas
         # 1. start connection & start loop
         self.client.connect(self.broker, self.port, keepalive=60)  # it connects the bridge to the MQTT broker
@@ -43,41 +74,37 @@ class MQTTActuatorCommandPublisher:
         arduino_device = None
         actuator_service = None
         
-        while not arduino_device or not actuator_service:
-            devices = self.catalogCli.get_devices()
-            services = self.catalogCli.get_services()
+        while not arduino_device:
+            devices = self._catalog_values(self.catalogCli.get_devices())
+            services = self._catalog_values(self.catalogCli.get_services())
             
-            arduino_device = next((d for d in devices if "arduino" in d["id"]), None)
-            actuator_service = next((s for s in services if "actuator_service" in s["id"]), None)
+            arduino_device = self._find_arduino_device(devices)
+            actuator_service = self._find_actuator_service(services)
             
-            if not arduino_device or not actuator_service:
-                print("Waiting for Arduino and Actuator Service to register...")
+            if not arduino_device:
+                print("Waiting for Arduino device to register...")
                 time.sleep(5)
 
         # 3. define feedback and command topics
-        ARDUINO_LED_COMMAND_TOPIC = next(
-            topic for topic in arduino_device["sub_topics"]
-            if "command" in topic
-        )  # command publisher will pub on it
+        ARDUINO_LED_COMMAND_TOPIC = self._first_topic_containing(arduino_device, "sub_topics", "led")
+        ARDUINO_LED_FEEDBACK_TOPIC = self._first_topic_containing(arduino_device, "pub_topics", "feedback")
 
-        ARDUINO_LED_FEEDBACK_TOPIC = next(
-            topic for topic in arduino_device["pub_topics"]
-            if "feedback" in topic
-        ) # command publisher will sub on it
+        if not ARDUINO_LED_COMMAND_TOPIC:
+            raise RuntimeError("Arduino device registered without a LED command topic")
 
-        ACTUATOR_COMMAND_TOPIC = next(
-            topic for topic in actuator_service["sub_topics"]
-            if "command" in topic
-        )  # command publisher will pub on it
-
-        ACTUATOR_FEEDBACK_TOPIC = next(
-            topic for topic in actuator_service["pub_topics"]
-            if "feedback" in topic
-        ) # command publisher will sub on it, will be something like tiot/group1/.../feedback
+        ACTUATOR_COMMAND_TOPIC = None
+        ACTUATOR_FEEDBACK_TOPIC = None
+        if actuator_service:
+            ACTUATOR_COMMAND_TOPIC = self._first_topic_containing(actuator_service, "sub_topics", "command")
+            ACTUATOR_FEEDBACK_TOPIC = self._first_topic_containing(actuator_service, "pub_topics", "feedback")
 
         # 4. subscribe to feedback topics
-        self.client.subscribe(ARDUINO_LED_FEEDBACK_TOPIC, 0);        debug_print(f"[MQTT Command Publisher] Subscribed to {ARDUINO_LED_FEEDBACK_TOPIC}")
-        self.client.subscribe(ACTUATOR_FEEDBACK_TOPIC, 0);        debug_print(f"[MQTT Command Publisher] Subscribed to {ACTUATOR_FEEDBACK_TOPIC}")
+        if ARDUINO_LED_FEEDBACK_TOPIC:
+            self.client.subscribe(ARDUINO_LED_FEEDBACK_TOPIC, 0)
+            print(f"[MQTT Command Publisher] Subscribed to {ARDUINO_LED_FEEDBACK_TOPIC}")
+        if ACTUATOR_FEEDBACK_TOPIC:
+            self.client.subscribe(ACTUATOR_FEEDBACK_TOPIC, 0)
+            print(f"[MQTT Command Publisher] Subscribed to {ACTUATOR_FEEDBACK_TOPIC}")
 
         # 5. initialize a parallel thread to refresh the service
         self.running = True
@@ -95,7 +122,7 @@ class MQTTActuatorCommandPublisher:
         refresh_thread.start()
 
         #6. start the loop to ask commands
-        self.commandLineLoop(self, ARDUINO_LED_COMMAND_TOPIC, ACTUATOR_COMMAND_TOPIC, ARDUINO_LED_FEEDBACK_TOPIC, ACTUATOR_FEEDBACK_TOPIC)
+        self.commandLineLoop(ARDUINO_LED_COMMAND_TOPIC, ACTUATOR_COMMAND_TOPIC, ARDUINO_LED_FEEDBACK_TOPIC, ACTUATOR_FEEDBACK_TOPIC)
 
         #7. stop
         self.stop(ARDUINO_LED_FEEDBACK_TOPIC, ACTUATOR_FEEDBACK_TOPIC)
@@ -109,8 +136,10 @@ class MQTTActuatorCommandPublisher:
 
         
     def stop(self, feedbackTopicArduino, feedbackTopicActuator):
-        self.client.unsubscribe(feedbackTopicArduino)
-        self.client.unsubscribe(feedbackTopicActuator)
+        if feedbackTopicArduino:
+            self.client.unsubscribe(feedbackTopicArduino)
+        if feedbackTopicActuator:
+            self.client.unsubscribe(feedbackTopicActuator)
         self.running = False
         self.client.loop_stop()
         self.client.disconnect()
@@ -134,6 +163,10 @@ class MQTTActuatorCommandPublisher:
                 break
 
             elif deviceType == "actuator":
+                if commandTopicActuator is None:
+                    print("No actuator service registered. Use Arduino commands for now.\n")
+                    continue
+
                 line = input("Insert valid Actuator Command:\n").strip()
 
                 if line.upper() == "Q":
@@ -282,15 +315,15 @@ class MQTTActuatorCommandPublisher:
 
                     value = parts[1]
 
-                    if value in ["0","1"]:
+                    if value not in ["0","1"]:
                         print("Invalid led value. Use 0 or 1.\n")
                         continue
 
                     payload = self.buildCommand(
                         target="led",
-                        value=value,
+                        value=int(value),
                         room=None,
-                        unit = int
+                        unit="bool"
                     )
                     self.client.publish(commandTopicArduino, json.dumps(payload), qos=0)
                     
@@ -307,7 +340,7 @@ class MQTTActuatorCommandPublisher:
 
     def buildCommand(self, target, value, room=None, unit=""):
 
-        resource_name = f"{room}/{target}/command" if room is not None else f"{target}/command"
+        resource_name = f"{room}/{target}/command" if room is not None else target
 
         return {
             "bn": self.clientID,
@@ -325,6 +358,9 @@ class MQTTActuatorCommandPublisher:
     def loopRefresh(self, commandTopicArduino, commandTopicActuator, feedbackTopicArduino, feedbackTopicActuator):
         # Periodic refresh of Command Publisher on Catalog.
         while self.running:
+            pub_topics = [topic for topic in [commandTopicArduino, commandTopicActuator] if topic]
+            sub_topics = [topic for topic in [feedbackTopicArduino, feedbackTopicActuator] if topic]
+
             #building the record
             service = {
                 "id": self.clientID,
@@ -335,16 +371,10 @@ class MQTTActuatorCommandPublisher:
                     "ip": self.broker,
                     "port": self.port,
                     # topic where commands are published
-                    "pub_topics": [
-                        commandTopicArduino,
-                        commandTopicActuator
-                    ],
+                    "pub_topics": pub_topics,
 
                     # topics where feedback are received
-                    "sub_topics": [
-                        feedbackTopicArduino, 
-                        feedbackTopicActuator
-                    ]
+                    "sub_topics": sub_topics
                 },
                 "resources": [
                     "arduino_led_control",

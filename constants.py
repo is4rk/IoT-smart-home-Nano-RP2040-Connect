@@ -1,5 +1,5 @@
-HOST_NAME = "10.120.246.215"
-PORT_NUMBER = 6090
+HOST_NAME = "0.0.0.0"
+PORT_NUMBER = 8080
 rooms = ["living_room", "kitchen", "bedroom"]
 sensors = ["temperature", "humidity", "motion"]
 units = ["Celsius", "%RH", "bool"]
@@ -7,12 +7,12 @@ actuators = ["thermostat", "lights", "blinds"]
 SENMLdatas = ["bt" , "bn", "e"]
 eDatas = ["n", "u", "v", "bv"]
 GROUP = "group1"
-CATALOG_URL = f"http://{HOST_NAME}:{PORT_NUMBER}"
+CATALOG_URL = f"http://127.0.0.1:{PORT_NUMBER}"
 BROKER = "test.mosquitto.org"
 PORT = 1883
 # TOPICS
 
-BASE_TOPIC=f"/tiot/{GROUP}"
+BASE_TOPIC=f"tiot/{GROUP}"
 REGISTRATION_DEVICES_TOPIC = f"{BASE_TOPIC}/catalog/devices/registration"  # Topic where devices publish their registrations; the bridge will subscribe to it and will handles the communication with the catalog
 REGISTRATION_SERVICES_TOPIC = f"{BASE_TOPIC}/catalog/services/registration"
 ACK_DEVICES_TOPIC_BASE = f"{BASE_TOPIC}/catalog/devices/ack"  # As required, the bridge has to send an ACK to the specific device after registration 

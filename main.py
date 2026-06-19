@@ -2,13 +2,10 @@ import cherrypy
 from constants import PORT_NUMBER, HOST_NAME, CATALOG_URL, BROKER, PORT
 
 # REST Services
-from EventLog import EventLog
 from Catalog import Catalog
-from SmartHomeSensorService import SmartHomeSensorService
 
 # MQTT Bridges
 from MQTTCatalogBridge import MQTTCatalogBridge
-from MQTTActuatorBridge import MQTTActuatorBridge
 
 if __name__ == "__main__":
     conf = {
@@ -18,10 +15,11 @@ if __name__ == "__main__":
         }
     }
 
-    # 1. Mount CherryPy REST Services
-    cherrypy.tree.mount(EventLog(), '/log', conf)
-    cherrypy.tree.mount(Catalog(), '/catalog', conf)
-    cherrypy.tree.mount(SmartHomeSensorService(), '/sensor', conf)
+    # Lab 10 needs the catalog both at root (/broker, /devices, ...)
+    # and under /catalog for the newer Python clients.
+    catalog = Catalog()
+    cherrypy.tree.mount(catalog, '/', conf)
+    cherrypy.tree.mount(catalog, '/catalog', conf)
     
     cherrypy.config.update({
         'server.socket_host': '0.0.0.0', # Allows external connections
@@ -32,14 +30,11 @@ if __name__ == "__main__":
     print("[Main] Starting CherryPy server...")
     cherrypy.engine.start()
 
-    # 3. Start Background MQTT Bridges
-    print("[Main] Starting MQTT Bridges...")
+    # 3. Start Background MQTT Catalog Bridge
+    print("[Main] Starting MQTT Catalog Bridge...")
     
-    catalog_bridge = MQTTCatalogBridge("catalog_bridge_group1", BROKER, PORT, f"{CATALOG_URL}/catalog")
+    catalog_bridge = MQTTCatalogBridge("catalog_bridge_group1", BROKER, PORT, CATALOG_URL)
     catalog_bridge.start()
-    
-    actuator_bridge = MQTTActuatorBridge("actuator_bridge_group1", rest_base_url=f"{CATALOG_URL}/sensor")
-    actuator_bridge.start()
 
     # 4. Block main thread to keep everything running
     cherrypy.engine.block()

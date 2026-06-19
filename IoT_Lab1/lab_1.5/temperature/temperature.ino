@@ -4,7 +4,7 @@
   const float VCC =1023;
   float temp=0;
 
-
+// formula per convertire da analog a °C
 float tempConverter(int a){
   float R = ((VCC/(float) a) - 1)*R0;
   float T = 1/((log( (float) R/ (float) R0)/ (float) B) + (1/298.15));
@@ -13,7 +13,6 @@ float tempConverter(int a){
 }
 
 void setup() {
-  // put your setup code here, to run once:
   pinMode(TEMP_PIN, INPUT);
   Serial.begin(9600);
   while(!Serial);
@@ -21,7 +20,7 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  // leggi il valore analogico da temp sens e poi converti
   int a = analogRead(TEMP_PIN);
   temp = tempConverter(a);
   Serial.print("temperature = ");

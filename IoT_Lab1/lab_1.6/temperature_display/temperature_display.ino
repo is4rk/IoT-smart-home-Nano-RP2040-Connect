@@ -6,6 +6,7 @@ const long int R0 = 100000;
 const float VCC =1023;
 float temp=0;
 
+// convertitore da analog a °C secondo le specifiche del sensore
 float tempConverter(int a){
   float R = ((VCC/(float) a) - 1)*R0;
   float T = 1/((log( (float) R/ (float) R0)/ (float) B) + (1/298.15));
@@ -15,6 +16,7 @@ float tempConverter(int a){
 
 void setup() {
   // put your setup code here, to run once:
+  //setup iniziale dello schermo
   lcd.begin(16, 2);
   lcd.setBacklight(128);
   lcd.home();
@@ -25,6 +27,7 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+  //controllo temp ogni 3 sec e stampo sullo schermo
   int a = analogRead(TEMP_PIN);
   temp = tempConverter(a);
   lcd.setCursor(12, 0); //per sovrascrivere ogni volta

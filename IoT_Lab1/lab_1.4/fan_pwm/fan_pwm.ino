@@ -11,6 +11,7 @@ void loop() {
   // put your main code here, to run repeatedly:
   if(Serial.available()>0){
     int inByte = Serial.read();
+    // per ogni + e se non siamo alla velocità massima, aumenta velocità
     if( inByte == '+' ){
       if (current_speed <255){
         //aumento
@@ -22,6 +23,7 @@ void loop() {
         Serial.println("Already at max speed");
       }
     }
+    // per ogni - e se non siamo alla velocità minima, diminuisci
     else if (inByte == '-' ){
       if (current_speed > 0 ){
         //decrementa

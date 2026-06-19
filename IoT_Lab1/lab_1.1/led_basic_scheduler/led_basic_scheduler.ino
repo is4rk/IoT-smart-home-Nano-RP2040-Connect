@@ -1,13 +1,13 @@
 #include <Scheduler.h>
 
-  const int RLED_PIN = 2; // costante per indicare il pin del red rosso
-  const int GLED_PIN = 3;// costante per indicare il pin del red verde
+const int RLED_PIN = 2; // costante per indicare il pin del red rosso
+const int GLED_PIN = 3;// costante per indicare il pin del red verde
 
-  const long R_HALF_PERIOD = 1500l; //tempo in millisecondi
-  const long G_HALF_PERIOD = 350l; //tempo in millisecondi
+const long R_HALF_PERIOD = 1500l; //tempo in millisecondi
+const long G_HALF_PERIOD = 350l; //tempo in millisecondi
 
-  int redLedState = LOW; //iniziamo con LOW - STATE
-  int greenLedState = LOW; //iniziamo con LOW - STATE
+int redLedState = LOW; //iniziamo con LOW - STATE
+int greenLedState = LOW; //iniziamo con LOW - STATE
   
 
 void setup() {

@@ -14,6 +14,14 @@ class CatalogClient:
     def get_device(self, id):
         url = self.url+"/devices/"+str(id)
         return (requests.get(url)).json()
+    
+    def get_services(self):
+        url = self.url + "/services"
+        return requests.get(url).json()
+
+    def get_service(self, id):
+        url = self.url + "/services/" + str(id)
+        return requests.get(url).json()
 
     def get_broker(self):
         url = self.url+"/broker"
@@ -27,10 +35,10 @@ class CatalogClient:
         url = self.url+"/services"
         return (requests.post(url, json=payload)).json()
 
-    def refresh_device(self, id):
+    def refresh_device(self, id, payload):
         url = self.url+"/devices/"+str(id)
-        return (requests.put(url)).json()
+        return (requests.put(url, json=payload)).json()
  
-    def refresh_service(self, id):
+    def refresh_service(self, id, payload):
         url = self.url+"/services/"+str(id)
-        return (requests.put(url)).json()
+        return (requests.put(url, json=payload)).json()

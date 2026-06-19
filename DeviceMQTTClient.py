@@ -6,7 +6,6 @@ from constants import *
 
 class DeviceMQTTClient:
     def __init__(self, clientID, broker, port):
-        #TODO remeber that broker is no longer universal, maybe make utils file
         self.broker   = broker
         self.port     = port
         self.ack = False
@@ -40,7 +39,6 @@ class DeviceMQTTClient:
             "time": time.time()
         }
     
-    #TODO wait for MQTTCatalog, when its done finish case 2 and check other cases
     def _menu_loop(self):
         value = "1"
         while value != "4":

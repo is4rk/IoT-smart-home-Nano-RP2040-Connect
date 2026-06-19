@@ -57,7 +57,7 @@ class Catalog:
         if len(path) == 1 and path[0] in ["devices", "services"]:
             return json.dumps(catalog.get(path[0]))
         if len(path) == 2 and path[0] in ["devices", "services"]:
-            match = catalog[path[0]][path[1]]
+            match = catalog[path[0]].get(path[1])
             if match is None:
                 raise cherrypy.HTTPError(404, f"{path[1]} not found")
             return json.dumps(match)
@@ -70,14 +70,11 @@ class Catalog:
         with self.lock:
             with open(self.json_file_name, "r") as f: # it loads on data the content of catalog.json
                 catalog = json.load(f)
-            if body["id"] in catalog[path[0]]: #TODO: check if correct, also in PUT
-                raise cherrypy.HTTPError(409, f"{body['id']} already exists")
-            else:
-                body["time"]=time.time() #sets time to insertion time
-                catalog[path[0]][body["id"]]=body
-                with open(self.json_file_name, "w") as f:
-                    json.dump(catalog, f) #saves to catalog
-                return json.dumps(body) #returns the inserted body, with updated time stamp
+            body["time"]=time.time() #sets time to insertion time
+            catalog[path[0]][body["id"]]=body
+            with open(self.json_file_name, "w") as f:
+                json.dump(catalog, f) #saves to catalog
+            return json.dumps(body) #returns the inserted body, with updated time stamp
             
             
     def PUT(self, *path, **query):  # It handles HTTP PUT requests used to update or refresh the time of an existing device/service registration.

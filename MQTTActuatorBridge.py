@@ -32,7 +32,7 @@ class MQTTActuatorBridge:
         self.actuators = constants.actuators
         self.running = False 
 
-        self.client = PahoMQTT.Client(self.clientID)
+        self.client = PahoMQTT.Client(client_id=self.clientID)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
 

@@ -1,7 +1,4 @@
-from itertools import count
-
 import cherrypy
-import requests
 import json
 import time
 from CatalogClient import CatalogClient
@@ -20,17 +17,14 @@ class EventLog():
         self.logs = []
         self.lock = Lock()
         self.catalog_url = CATALOG_URL
-        catalogCli = CatalogClient(CATALOG_URL)
-        response = catalogCli.get_broker()
-        metadata = response.json() if hasattr(response, 'json') else response
-        self.broker = metadata["ip"]
-        self.port = metadata["port"]
+        self.broker = BROKER
+        self.port = PORT
         self.mqtt_started = False
         self.next_id = 1
 
         self.interval = 60
         self.ack = False
-        self.client = PahoMQTT.Client(self.clientID)
+        self.client = PahoMQTT.Client(client_id=self.clientID)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.last_response=None
@@ -44,7 +38,7 @@ class EventLog():
         Thread(target=self.loopRefresh, daemon=True).start()
 
     def loopRefresh(self):
-        print("[Sensor] Telemetry and Heartbeat engine started.")
+        print("[EventLog] Refresh loop started.")
         while True:
             time.sleep(self.interval)
             try:
@@ -110,7 +104,7 @@ class EventLog():
         return {
             "id": self.clientID,
             "description": "Event Log Service",
-            "endpoint": "http://localhost:9966/log",
+            "endpoint": f"{CATALOG_URL}/log",
             "mqtt": {
                 "ip": self.broker,
                 "port": self.port,

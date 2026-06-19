@@ -3,7 +3,7 @@
 #include <PubSubClient.h>
 #include <math.h>
 #include "arduino_secrets.h"
-
+// EXERCISE 10
 #define DEBUG 1
 
 // =====================

@@ -2,7 +2,8 @@ import cherrypy
 import requests
 import json
 import time
-from threading import Lock
+from CatalogClient import CatalogClient
+from threading import Lock, Thread
 import paho.mqtt.client as PahoMQTT
 from SmartHomeSensorService import controlSenML
 from constants import *
@@ -17,12 +18,16 @@ class EventLog():
         self.logs = []
         self.lock = Lock()
         self.catalog_url = CATALOG_URL
-        self.broker = None
-        self.port = None
+        catalogCli = CatalogClient(CATALOG_URL)
+        response = catalogCli.get_broker()
+        metadata = response.json() if hasattr(response, 'json') else response
+        self.broker = metadata["ip"]
+        self.port = metadata["port"]
         self.mqtt_started = False
         self.next_id = 1
-        self.get_mqtt_broker()
 
+        self.interval = 60
+        self.ack = False
         self.client = PahoMQTT.Client(self.clientID)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
@@ -31,24 +36,47 @@ class EventLog():
 
     # MQTT
 
-    def get_mqtt_broker(self):
-        response = requests.get(f"{self.catalog_url}/broker")
-        metadata = response.json()
-        self.broker = metadata["ip"]
-        self.port = metadata["port"]
-
     def start(self):
         self.client.connect(self.broker, self.port, keepalive=60)
         self.client.loop_start()
+        Thread(target=self.temp_loop, daemon=True).start()
+
+    def temp_loop(self):
+        print("[Sensor] Telemetry and Heartbeat engine started.")
+        while True:
+            if self.ack:
+                # Send Heartbeat
+                refresh_payload = {"id": self.clientID}
+                self.client.publish(REFRESH_DEVICE_TOPIC, json.dumps(refresh_payload))
+                print("[Sensor] Heartbeat refresh published to Bridge.")
+
+                time.sleep(self.interval)
+            else:
+                # Wait for initial registration ACK before starting
+                time.sleep(1)
 
     def stop(self):
         self.client.loop_stop()
         self.client.disconnect()
 
     def on_connect(self, client, userdata, flags, rc):
-        # Placeholder: subscribe to relevant topics here, e.g. sensor readings and actuator commands
-        # Example: self.client.subscribe("/tiot/group1/temperature/+")
-        return
+        self.client.subscribe(f"{BASE_TOPIC}/log")
+
+        service = {
+            "id": self.clientID,
+            "description": "Event Log Service",
+            "endpoint": "http://localhost:8080/log",
+            "mqtt": {
+                "ip": self.broker,
+                "port": self.port,
+                "pub_topic": None,
+                "sub_topic": f"{BASE_TOPIC}/log"
+            },
+            "resources": ["temperature"],
+            "time": time.time()
+        }
+    
+        self.client.publish(REGISTRATION_SERVICES_TOPIC, json.dumps(service))
 
     def on_message(self, client, userdata, msg):
         # Ingest SenML payloads from MQTT; normalize similar to POST handling
@@ -225,4 +253,3 @@ class EventLog():
         else:
             raise cherrypy.HTTPError(400, "Bad request: no services avaliable")
     
-    # MQTT

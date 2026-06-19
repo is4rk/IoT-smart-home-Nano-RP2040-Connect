@@ -8,17 +8,20 @@ from constants import *
 
 
 def controlSenML(d):
-    
-    if not(len(d.keys()) == 3):
+    # Check main structure safely
+    if "e" not in d or "bn" not in d:
         return False
-    for k in d.keys():
-        if k not in SENMLdatas: return False
         
     eventDict = d["e"][0]
-    if not(len(eventDict.keys()) == 3):
+    
+    # Require name and unit
+    if "n" not in eventDict or "u" not in eventDict:
         return False
-    for k in eventDict.keys():
-        if k not in eDatas: return False
+        
+    # Require at least a value type
+    if "v" not in eventDict and "bv" not in eventDict:
+        return False
+        
     return True
 
 
@@ -105,7 +108,7 @@ class SmartHomeSensorService():
                     unit = f"{units[0]}"
                     value = self.actuatorsStates["thermostat"]
                 case "blinds":
-                    unit = "%RH"
+                    unit = "% position"
                     value = self.actuatorsStates["blinds"]
                 case "lights":
                     unit = "boolean"
@@ -144,12 +147,25 @@ class SmartHomeSensorService():
                         unit = "Celsius"
                         self.actuatorsStates["thermostat"] = data["e"][0]["v"]
                     case "blinds":
-                        unit = "%\position"
+                        unit = "% position"
                         self.actuatorsStates["blinds"] = data["e"][0]["v"]
                     case "lights":
                         unit = "boolean"
                         self.actuatorsStates["lights"] = data["e"][0]["bv"]                   
         else:
             raise cherrypy.HTTPError(404, "invalid path") 
-    
 
+if __name__ == '__main__':
+    conf = {
+        '/': {
+            'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
+        }
+    }
+    
+    cherrypy.tree.mount(SmartHomeSensorService(), '/sensor', conf)
+    cherrypy.config.update({
+            'server.socket_host': '0.0.0.0', 
+            'server.socket_port': 8081
+        })    
+    cherrypy.engine.start()
+    cherrypy.engine.block()

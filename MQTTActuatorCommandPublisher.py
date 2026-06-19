@@ -40,11 +40,19 @@ class MQTTActuatorCommandPublisher:
         self.client.loop_start()  # Keeps the MQTT client alive and listening for messages
 
         # 2. As soon as it connects to the broker, asks the catalog for the devices & services list
-        devices = self.catalogCli.get_devices()
-        services = self.catalogCli.get_services()
-
-        arduino_device = next(d for d in devices if "arduino" in d["id"]) # Sticking to the assignment, there is just an arduino (that's why also the topics are not different basing on the arduino id)
-        actuator_service = next(s for s in services if "actuator_service" in s["id"])
+        arduino_device = None
+        actuator_service = None
+        
+        while not arduino_device or not actuator_service:
+            devices = self.catalogCli.get_devices()
+            services = self.catalogCli.get_services()
+            
+            arduino_device = next((d for d in devices if "arduino" in d["id"]), None)
+            actuator_service = next((s for s in services if "actuator_service" in s["id"]), None)
+            
+            if not arduino_device or not actuator_service:
+                print("Waiting for Arduino and Actuator Service to register...")
+                time.sleep(5)
 
         # 3. define feedback and command topics
         ARDUINO_LED_COMMAND_TOPIC = next(
@@ -348,8 +356,11 @@ class MQTTActuatorCommandPublisher:
                 "time": time.time()
             }
 
-
-            self.client.publish(constants.REGISTRATION_SERVICES_TOPIC, json.dumps(service), qos=0)
+            try:
+                self.catalogCli.refresh_service(self.clientID, service)
+            except:
+                self.catalogCli.register_service(service)
+                
             time.sleep(60)
        
     def on_message(self, client, userdata, msg):
@@ -358,6 +369,7 @@ class MQTTActuatorCommandPublisher:
         print(f"Topic: {msg.topic}")
         payload = json.loads(msg.payload.decode("utf-8"))
         print(json.dumps(payload))
+
 
 """
 {

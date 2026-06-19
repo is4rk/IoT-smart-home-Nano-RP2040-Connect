@@ -14,12 +14,12 @@
 #define BASE_NAME "ArduinoGroup1"
 
 const String GROUP = "group1";
-const String BASE_TOPIC = "/tiot/" + GROUP;
+const String BASE_TOPIC = "/tiot/" + GROUP + "/catalog";
 
 // MQTT topics used by the Catalog bridge already developed in Python.
-const String REGISTRATION_DEVICES_TOPIC = BASE_TOPIC + "/catalog/devices/registration";
-const String REFRESH_DEVICE_TOPIC      = BASE_TOPIC + "/catalog/devices/refresh";
-const String ACK_DEVICE_TOPIC          = BASE_TOPIC + "/catalog/devices/ack/" + DEVICE_ID;
+const String REGISTRATION_DEVICES_TOPIC = BASE_TOPIC + "/devices/registration";
+const String REFRESH_DEVICE_TOPIC      = BASE_TOPIC + "/devices/refresh";
+const String ACK_DEVICE_TOPIC          = BASE_TOPIC + "/devices/ack/" + DEVICE_ID;
 
 // Arduino application topics communicated to the Catalog during registration.
 const String TEMP_TOPIC         = BASE_TOPIC + "/arduino/temperature";
@@ -30,12 +30,12 @@ const String LED_FEEDBACK_TOPIC = BASE_TOPIC + "/arduino/feedback/led";
 // Catalog REST settings
 // =====================
 // Use the LAN IP of the PC running Catalog.py. Do not use localhost from Arduino.
-const char CATALOG_HOST[] = "10.35.244.215";
-const int  CATALOG_PORT = 8080;
+const char CATALOG_HOST[] = "10.120.246.215";
+const int  CATALOG_PORT = 1010;
 
 // In the uploaded Catalog.py the Catalog is mounted on '/', so the base path is empty.
 // If your server is mounted on '/catalog', set this to "/catalog".
-const String CATALOG_BASE_PATH = "";
+const String CATALOG_BASE_PATH = "/catalog";
 
 // =====================
 // Pins
@@ -46,7 +46,7 @@ const int GREEN_PIN = 2;
 // =====================
 // Broker data. It is overwritten by GET /broker when the Catalog is reachable.
 // =====================
-String broker_address = "iot.eclipse.org";
+String broker_address = "test.mosquitto.org";
 int broker_port = 1883;
 
 // WiFi credentials from arduino_secrets.h

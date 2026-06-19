@@ -1,5 +1,5 @@
 import requests
-
+#not much to say tbh, just adds /catalog to the base url
 class CatalogClient:
     def __init__(self, url):
         self.url = url

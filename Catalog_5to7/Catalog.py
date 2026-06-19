@@ -1,4 +1,4 @@
-# Exercise 
+# Exercise 5
 import cherrypy
 import json
 import time
@@ -211,7 +211,7 @@ class Catalog:
 #     }
 # ]
 
-if __name__ == '__main__':
+if __name__ == '__main__': #for testing
     conf = {
         '/': {
             'request.dispatch': cherrypy.dispatch.MethodDispatcher(),

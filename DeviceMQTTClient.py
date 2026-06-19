@@ -1,3 +1,4 @@
+# Lab 2 exercise 8
 import paho.mqtt.client as PahoMQTT
 import threading, time, uuid
 import random, json
@@ -76,14 +77,14 @@ class DeviceMQTTClient:
     
     def _pub_reg_loop(self):
         while True:
-            time.sleep(10) #stops deadlock :D
+            time.sleep(10) #remove this to freeze ur system ;D
             if self.ack == True:
-                time.sleep(60)
+                time.sleep(60) #or this (its actaully a thread but still funny)
                 payload = json.dumps(self._random_device_payload())
                 self.client.publish(REGISTRATION_DEVICES_TOPIC, payload)
 
     def start(self): 
-        self.client.connect(self.broker, self.port, keepalive=60) 
+        self.client.connect(self.broker, self.port, keepalive=60)
         self.client.loop_start() 
         threading.Thread(target=self._pub_reg_loop, daemon=True).start() #This is here to avoid a possible race condition. I cant wait to stop studying for O.S. T_T
         threading.Thread(target=self._menu_loop, daemon=True).start()

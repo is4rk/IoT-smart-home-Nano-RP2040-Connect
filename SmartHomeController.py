@@ -16,6 +16,7 @@ CONFIG_FILE = "smart_home_controller_config.json"
 
 class SmartHomeController:
     def __init__(self, config_file=CONFIG_FILE):
+        # initializes the controller states
         self.config = self._load_config(config_file)
         self.client_id = self.config["controller_id"]
         self.catalog = CatalogClient(CATALOG_URL)
@@ -36,10 +37,12 @@ class SmartHomeController:
         self.client.on_message = self.on_message
 
     def _load_config(self, config_file):
+        # loads thresholds, topics and timing values from the configuration file
         with open(config_file, "r") as f:
             return json.load(f)
 
     def start(self):
+        # starts the controller by registering it and connecting to MQTT
         broker_info = self.catalog.get_broker()
         self.broker = broker_info.get("ip", self.broker)
         self.port = int(broker_info.get("port", self.port))
@@ -47,6 +50,7 @@ class SmartHomeController:
         self.register_service()
         self.refresh_catalog_topics()
 
+        # the background loops keep the catalog registration and the topic list updated
         self.running = True
         threading.Thread(target=self.registration_loop, daemon=True).start()
         threading.Thread(target=self.catalog_poll_loop, daemon=True).start()
@@ -55,11 +59,13 @@ class SmartHomeController:
         self.client.loop_start()
 
     def stop(self):
+        # stops the MQTT loop and closes the connection
         self.running = False
         self.client.loop_stop()
         self.client.disconnect()
 
     def register_service(self):
+        # registers this controller as a service inside the catalog
         payload = self.build_service_payload()
         try:
             self.catalog.register_service(payload)
@@ -67,6 +73,7 @@ class SmartHomeController:
             self.catalog.refresh_service(self.client_id, payload)
 
     def build_service_payload(self):
+        # builds the catalog description for this software actor
         return {
             "id": self.client_id,
             "description": "Integrated Smart Home Controller for exercise 13",
@@ -91,6 +98,7 @@ class SmartHomeController:
         }
 
     def registration_loop(self):
+        # periodically refreshes the service registration before it expires
         while self.running:
             time.sleep(float(self.config["registration_refresh_seconds"]))
             try:
@@ -99,11 +107,13 @@ class SmartHomeController:
                 print(f"[Controller] Catalog refresh failed: {e}")
 
     def catalog_poll_loop(self):
+        # periodically reads the catalog to discover new devices and topics
         while self.running:
             time.sleep(float(self.config["catalog_poll_seconds"]))
             self.refresh_catalog_topics()
 
     def refresh_catalog_topics(self):
+        # updates MQTT subscriptions using the devices  currently stored in the catalog
         try:
             devices = self._catalog_values(self.catalog.get_devices())
         except Exception as e:
@@ -126,16 +136,19 @@ class SmartHomeController:
         self.subscribe(f"{BASE_TOPIC}/+/sensors/temperature")
         self.subscribe(f"{BASE_TOPIC}/+/sensors/motion")
 
-    def _catalog_values(self, catalog_section):
+    def _catalog_values(self, catalog_section): # accepts both dictionary and list catalog formats
+        
         if isinstance(catalog_section, dict):
             return list(catalog_section.values())
         return catalog_section or []
 
-    def _is_sensor_topic(self, topic):
+    def _is_sensor_topic(self, topic):         # checks if a topic looks like a sensor publication topic
+
         sensor_words = ("temperature", "humidity", "motion")
         return any(word in topic for word in sensor_words)
 
-    def subscribe(self, topic):
+    def subscribe(self, topic):    # stores a topic and subscribes immedeatelyl if MQTT is already connected
+     
         if topic in self.subscribed_topics:
             return
         self.subscribed_topics.add(topic)
@@ -144,11 +157,13 @@ class SmartHomeController:
         print(f"[Controller] Subscribed to {topic}")
 
     def on_connect(self, client, userdata, flags, rc):
+        # restores all subscriptions after the MQTT connection is created
         print(f"[Controller] Connected to MQTT broker with rc={rc}")
         for topic in self.subscribed_topics:
             self.client.subscribe(topic, qos=0)
 
     def on_message(self, client, userdata, msg):
+        # it forwards SenML records to the controller logic
         try:
             payload = json.loads(msg.payload.decode("utf-8"))
         except json.JSONDecodeError:
@@ -160,6 +175,7 @@ class SmartHomeController:
             self.handle_senml_record(msg.topic, record)
 
     def handle_senml_record(self, topic, record):
+        # it extracts temperature and motion events from a SenML record
         if not isinstance(record, dict) or "e" not in record:
             return
 
@@ -173,6 +189,7 @@ class SmartHomeController:
                 self.handle_motion(room, bool(value))
 
     def room_from_record(self, topic, record):
+        # tries to understand the room from bn first, then from the MQTT topic
         bn = str(record.get("bn", ""))
         parts = [part for part in bn.split("/") if part]
         if len(parts) >= 2 and parts[0] == "sensor":
@@ -185,6 +202,7 @@ class SmartHomeController:
         return self.config["default_room"]
 
     def handle_temperature(self, room, value):
+        # saves the new temperature and calculates  statistics
         window = self.temperature_windows[room]
         window.append(value)
 
@@ -199,15 +217,18 @@ class SmartHomeController:
         self.evaluate_rules(room, value)
 
         if value > float(self.config["alert_temperature_threshold"]):
+            # an alert is published only when the high temperature threshold is passed
             self.publish_alert(room, value, stats)
 
     def handle_motion(self, room, value):
+        # updates the motion state and switches the LED off when no motion is detected
         self.motion_state[room] = value
         print(f"[Controller] {room} motion={value}")
         if not value:
             self.publish_led_command(0)
 
     def evaluate_rules(self, room, temperature):
+        # it applies the simple automation rule based on motion and temperature
         motion = self.motion_state[room]
         threshold = float(self.config["temperature_threshold"])
 
@@ -219,6 +240,7 @@ class SmartHomeController:
             self.publish_led_command(1)
 
     def publish_led_command(self, value):
+        # it sends the LED command to every command topic  discovered by the controller
         payload = {
             "bn": self.client_id,
             "e": [
@@ -235,6 +257,7 @@ class SmartHomeController:
             print(f"[Controller] LED command {value} published on {topic}")
 
     def publish_alert(self, room, temperature, stats):
+        # publishes a temperature alert with the current  statistics
         topic = f"{self.config['alert_topic_base']}/{room}/temperature"
         payload = {
             "bn": f"/alerts/{room}",
@@ -253,6 +276,7 @@ class SmartHomeController:
 
 
 if __name__ == "__main__":
+    # runs the controller as an autonomius process
     controller = SmartHomeController()
     controller.start()
     try:

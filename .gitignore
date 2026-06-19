@@ -2,6 +2,8 @@
 *.tmp
 .tmp/
 .tmp
+__pycache__/
+*.py[cod]
 
 # Ignore Arduino secrets file
 arduino_secrets.h

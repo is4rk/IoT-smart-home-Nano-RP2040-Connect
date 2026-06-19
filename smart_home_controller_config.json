@@ -1,12 +1,22 @@
 {
+    "_comment_file": "configuration values used by the exercise 13 smart home controller",
     "controller_id": "integrated_smart_home_controller",
+    "_comment_temperature_threshold": "maximum comfortable temperature used by the automation rule",
     "temperature_threshold": 26.0,
+    "_comment_alert_temperature_threshold": "temperature limit used to publish an alert message",
     "alert_temperature_threshold": 30.0,
+    "_comment_stats_window_size": "number of recent temperature values kept  for rolling statistics",
     "stats_window_size": 10,
+    "_comment_default_room": "room used when the controller cannot understand the room from the message",
     "default_room": "kitchen",
+    "_comment_default_motion": "initial motion state used before the first motion event is received",
     "default_motion": true,
+    "_comment_alert_topic_base": "base topic where the controller publishes temperature alerts",
     "alert_topic_base": "tiot/group1/alerts",
+    "_comment_fallback_led_command_topic": "default LED topic used if no Arduino topic is discovered in the catalog",
     "fallback_led_command_topic": "tiot/group1/arduino_group1/commands/led",
+    "_comment_registration_refresh_seconds": "how often the controller refreshes its service registration",
     "registration_refresh_seconds": 60,
+    "_comment_catalog_poll_seconds": "how often the controller checks the catalog  for new devices and topics",
     "catalog_poll_seconds": 30
 }

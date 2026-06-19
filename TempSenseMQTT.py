@@ -20,7 +20,7 @@ class TempSenseMQTT:
         self.url=url
         catalogCli = CatalogClient(url)
         response = catalogCli.get_broker()
-        metadata = response.json() if hasattr(response, 'json') else response
+        metadata = response.json() if hasattr(response, 'json') else response #extract json in case of diff format
         self.broker = metadata["ip"]
         self.port = metadata["port"]
         self.interval = 30
@@ -62,10 +62,9 @@ class TempSenseMQTT:
         self.client.disconnect()
             
     def temp_loop(self):
-        print("[Sensor] Telemetry and Heartbeat engine started.")
+        print("[Sensor] Telemetry and Heartbeat started.")
         while True:
             if self.ack:
-                # 1. Send Telemetry Data
                 temp = random.uniform(20.0, 30.0)
                 senml = [
                     {
@@ -78,9 +77,8 @@ class TempSenseMQTT:
                 self.client.publish(f"{BASE_TOPIC}/log", json.dumps(senml))
                 print(f"[Sensor] Telemetry sent: {round(temp, 2)}°C")
 
-                # 2. Send Heartbeat
                 self.device_payload = self.build_device_payload()
-                self.client.publish(REFRESH_DEVICE_TOPIC, json.dumps(self.device_payload))
+                self.client.publish(REFRESH_DEVICE_TOPIC, json.dumps(self.device_payload)) #keeps device alive in catalog
                 print("[Sensor] Heartbeat refresh published to Bridge.")
 
                 time.sleep(self.interval)
@@ -107,6 +105,7 @@ class TempSenseMQTT:
             "time": time.time()
         }
 
+#for testing
 if __name__ == "__main__":
     sensor = TempSenseMQTT(url=CATALOG_URL, clientID="temp_sensor_livingroom")
     sensor.start()

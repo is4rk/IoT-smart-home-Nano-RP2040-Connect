@@ -9,17 +9,18 @@
 // =====================
 // Team / device settings
 // =====================
-#define USERNAME "TiotGroup1Arduino"
+#define USERNAME "arduino"
 #define DEVICE_ID "arduino_group1"
 #define BASE_NAME "ArduinoGroup1"
 
 const String GROUP = "group1";
-const String BASE_TOPIC = "/tiot/" + GROUP + "/catalog";
+const String BASE_TOPIC = "tiot/" + GROUP + "/catalog";
 
 // MQTT topics used by the Catalog bridge already developed in Python.
 const String REGISTRATION_DEVICES_TOPIC = BASE_TOPIC + "/devices/registration";
 const String REFRESH_DEVICE_TOPIC      = BASE_TOPIC + "/devices/refresh";
 const String ACK_DEVICE_TOPIC          = BASE_TOPIC + "/devices/ack/" + DEVICE_ID;
+const String LOG_TOPIC                 = "tiot/" + GROUP + "/log";
 
 // Arduino application topics communicated to the Catalog during registration.
 const String TEMP_TOPIC         = BASE_TOPIC + "/arduino/temperature";
@@ -31,7 +32,7 @@ const String LED_FEEDBACK_TOPIC = BASE_TOPIC + "/arduino/feedback/led";
 // =====================
 // Use the LAN IP of the PC running Catalog.py. Do not use localhost from Arduino.
 const char CATALOG_HOST[] = "10.120.246.215";
-const int  CATALOG_PORT = 1010;
+const int  CATALOG_PORT = 8080;
 
 // In the uploaded Catalog.py the Catalog is mounted on '/', so the base path is empty.
 // If your server is mounted on '/catalog', set this to "/catalog".
@@ -383,6 +384,7 @@ void loop() {
     }
 
     client.publish(TEMP_TOPIC.c_str(), payload.c_str());
+    client.publish(LOG_TOPIC.c_str(), payload.c_str());
   }
 
   // Registration renewal every 1 minute.

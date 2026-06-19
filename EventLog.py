@@ -1,3 +1,5 @@
+from itertools import count
+
 import cherrypy
 import requests
 import json
@@ -142,7 +144,7 @@ class EventLog():
             for event in snapshot:
                 keep = True
                 for q in query:
-                    match(q):
+                    match q:
                         case "room":
                             if not (event["bn"].startswith("/sensor/" + query["room"]) or event["bn"].startswith("/" + query["room"])):
                                 keep = False
@@ -229,16 +231,12 @@ class EventLog():
                 
                 events_to_remove = []
                 with self.lock:
-                    # find events to remove
-                    for event in self.logs:
-                        # put them in a buffer
-                        if (float(event["bt"]) < float(query["before"])):
-                            events_to_remove.append(event)
-                    # remove and count
-                    for e in events_to_remove:
-                        count += 1
-                        self.logs.remove(e)
-                return ("Entries deleted: " + str(count))
+                    initial_count = len(self.logs)
+                    before_epoch = float(query["before"])
+                    # Mantiene solo gli eventi che NON devono essere rimossi
+                    self.logs = [event for event in self.logs if float(event["bt"]) >= before_epoch]
+                    count = initial_count - len(self.logs)
+                    return f"Entries deleted: {count}"
             # purging all entries
             # DELETE /log
             elif (len(query) == 0):

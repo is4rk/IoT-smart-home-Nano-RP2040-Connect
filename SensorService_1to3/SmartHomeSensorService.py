@@ -160,7 +160,7 @@ class SmartHomeSensorService():
                     self.actuatorsStates["lights"] = data["e"][0]["bv"]                   
         else:
             raise cherrypy.HTTPError(404, "invalid path") 
-
+ #for testing
 if __name__ == '__main__':
     conf = {
         '/': {

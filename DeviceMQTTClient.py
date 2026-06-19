@@ -71,7 +71,7 @@ class DeviceMQTTClient:
                 case "4":
                     print("[Device MQTT client] Exiting menu")
                
-                case _:
+                case _: #default
                     print("Invalid option")
     
     def _pub_reg_loop(self):
@@ -100,9 +100,8 @@ class DeviceMQTTClient:
                 ack_payload = json.loads(msg.payload.decode("utf-8"))
                 print(f"[Device MQTT client] ACK received: {ack_payload}")
             except Exception:
-                print(f"[Device MQTT client] ACK received (non-JSON): {msg.payload!r}")
+                print(f"[Device MQTT client] ACK received (non-JSON): {msg.payload!r}") # in case wrong format is sent
             self.ack = True
-
         else:
             try:
                 payload = json.loads(msg.payload.decode("utf-8"))
@@ -111,7 +110,7 @@ class DeviceMQTTClient:
             except json.JSONDecodeError:
                 print("[Device MQTT client] Invalid JSON received")
 
-if __name__ == "__main__":
+if __name__ == "__main__": #for testing
     BROKER_HOST = "test.mosquitto.org"
     BROKER_PORT = 1883
     UNIQUE_ID   = "smart_sensor_kitchen"

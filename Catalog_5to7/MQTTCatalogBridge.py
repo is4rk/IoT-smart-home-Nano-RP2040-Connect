@@ -268,7 +268,7 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
         client.publish(response_topic, json.dumps(response))
 
 
-
+ #for testing
 if __name__ == '__main__':
 
     mqtt_bridge = MQTTCatalogBridge("catalog_bridge_group1", BROKER, PORT, CATALOG_URL)  # Creates the MQTT bridge connected to the same Catalog

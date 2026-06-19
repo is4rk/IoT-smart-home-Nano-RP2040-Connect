@@ -167,7 +167,7 @@ class MQTTActuatorBridge:
 
     def publish_feedback(self, feedback, feedback_topic):
         self.client.publish(feedback_topic, json.dumps(feedback), qos=0)
-
+#for testing
 if __name__ == '__main__':
     bridge = MQTTActuatorBridge()
     try:

@@ -57,7 +57,7 @@ class SmartHomeSensorServiceNoUri():
             ]
         }
         return json.dumps(result)
-
+ #for testing
 if __name__ == '__main__':
     cherrypy.tree.mount(SmartHomeSensorServiceNoUri())
     cherrypy.engine.start()

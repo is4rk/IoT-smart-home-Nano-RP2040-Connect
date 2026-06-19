@@ -1,3 +1,4 @@
+#exercise 14 lab 3
 import json
 import statistics
 import threading
@@ -317,7 +318,7 @@ class SmartHomeControllerV2:
         self.client.publish(topic, json.dumps(payload), qos=0)
         print(f"[Controller14] Alert published on {topic}: {payload}")
 
-
+#for testing
 if __name__ == "__main__":
     # runs the controller v2 as a standalone script
     controller = SmartHomeControllerV2()

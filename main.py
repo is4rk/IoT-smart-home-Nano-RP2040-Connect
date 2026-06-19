@@ -9,7 +9,8 @@ from SmartHomeSensorService import SmartHomeSensorService
 # MQTT Bridges
 from MQTTCatalogBridge import MQTTCatalogBridge
 from MQTTActuatorBridge import MQTTActuatorBridge
- #for NOT testing :D
+ 
+ #NOT for testing :D
 if __name__ == "__main__": 
     conf = {
         '/':{

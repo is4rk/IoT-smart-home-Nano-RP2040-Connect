@@ -275,7 +275,7 @@ class SmartHomeController:
         self.client.publish(topic, json.dumps(payload), qos=0)
         print(f"[Controller] Alert published on {topic}: {payload}")
 
-
+#for testing
 if __name__ == "__main__":
     # runs the controller as an autonomius process
     controller = SmartHomeController()

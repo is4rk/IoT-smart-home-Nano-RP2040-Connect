@@ -27,6 +27,6 @@ Exercise 11:
 Exercise 12:
 [Event Log Service MQTT](EventLog.py)
 Exercise 13:
-[]()
+[Integrated Smart Home Controller]()
 Exercise 14:
-[]()
+[Integrated Smart Home Controller with former Arduino features]()

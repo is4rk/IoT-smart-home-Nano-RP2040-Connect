@@ -1,5 +1,5 @@
-HOST_NAME = "10.35.244.215"
-PORT_NUMBER = 9696
+HOST_NAME = "10.120.246.215"
+PORT_NUMBER = 6090
 rooms = ["living_room", "kitchen", "bedroom"]
 sensors = ["temperature", "humidity", "motion"]
 units = ["Celsius", "%RH", "bool"]
@@ -7,7 +7,7 @@ actuators = ["thermostat", "lights", "blinds"]
 SENMLdatas = ["bt" , "bn", "e"]
 eDatas = ["n", "u", "v", "bv"]
 GROUP = "group1"
-CATALOG_URL = f"http://localhost:{PORT_NUMBER}"
+CATALOG_URL = f"http://{HOST_NAME}:{PORT_NUMBER}"
 BROKER = "test.mosquitto.org"
 PORT = 1883
 # TOPICS

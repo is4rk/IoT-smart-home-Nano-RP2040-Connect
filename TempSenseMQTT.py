@@ -71,6 +71,10 @@ class TempSenseMQTT:
             self.client.connect(self.broker, self.port)
             self.client.loop_start()
             threading.Thread(target=self.temp_loop, daemon=True).start()
+
+    def stop(self):
+        self.client.loop_stop()
+        self.client.disconnect()
             
     def temp_loop(self):
         print("[Sensor] Telemetry and Heartbeat engine started.")

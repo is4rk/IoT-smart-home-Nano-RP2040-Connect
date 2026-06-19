@@ -62,7 +62,8 @@ class MQTTCatalogBridge: # This class will allows that the Catalog to receive re
     def on_message(self, client, userdata, msg):
         # if a client publishes something on the registration topic, the bridge will receive it in msg
         # and the bridge has to register that device or service on the catalog
-        
+        print("AAAAAAAAAAAAAAAAA")
+        print(msg)
         topic = msg.topic
 
         try:

@@ -16,13 +16,13 @@
 const String GROUP = "group1";
 const String BASE_TOPIC = "tiot/" + GROUP + "/catalog";
 
-// MQTT topics used by the Catalog bridge already developed in Python.
+// MQTT topics used by the Catalog
 const String REGISTRATION_DEVICES_TOPIC = BASE_TOPIC + "/devices/registration";
 const String REFRESH_DEVICE_TOPIC      = BASE_TOPIC + "/devices/refresh";
 const String ACK_DEVICE_TOPIC          = BASE_TOPIC + "/devices/ack/" + DEVICE_ID;
 const String LOG_TOPIC                 = "tiot/" + GROUP + "/log";
 
-// Arduino application topics communicated to the Catalog during registration.
+// Arduino application topics communicated to the Catalog
 const String TEMP_TOPIC         = BASE_TOPIC + "/arduino/temperature";
 const String LED_COMMAND_TOPIC  = BASE_TOPIC + "/arduino/command/led";
 const String LED_FEEDBACK_TOPIC = BASE_TOPIC + "/arduino/feedback/led";
@@ -30,12 +30,8 @@ const String LED_FEEDBACK_TOPIC = BASE_TOPIC + "/arduino/feedback/led";
 // =====================
 // Catalog REST settings
 // =====================
-// Use the LAN IP of the PC running Catalog.py. Do not use localhost from Arduino.
 const char CATALOG_HOST[] = "10.120.246.215";
 const int  CATALOG_PORT = 8080;
-
-// In the uploaded Catalog.py the Catalog is mounted on '/', so the base path is empty.
-// If your server is mounted on '/catalog', set this to "/catalog".
 const String CATALOG_BASE_PATH = "/catalog";
 
 // =====================
@@ -45,16 +41,15 @@ const int TEMP_PIN = A1;
 const int GREEN_PIN = 2;
 
 // =====================
-// Broker data. It is overwritten by GET /broker when the Catalog is reachable.
+// Broker data. Overwritten after GET.
 // =====================
 String broker_address = "test.mosquitto.org";
 int broker_port = 1883;
 
-// WiFi credentials from arduino_secrets.h
 char ssid[] = SECRET_SSID;
 char pass[] = SECRET_PASS;
 
-// Temperature conversion constants
+// Temperature conv const
 const int B = 4275;
 const long int R0 = 100000;
 const float VCC = 1023.0;
@@ -77,7 +72,7 @@ int status = WL_IDLE_STATUS;
 // =====================
 // Utility functions
 // =====================
-String senMlEncode(String res, float v, String unit) {
+String senMlEncode(String res, float v, String unit) { 
   doc_snd.clear();
   doc_snd["bn"] = BASE_NAME;
   doc_snd["e"][0]["t"] = int(millis() / 1000);
@@ -153,7 +148,7 @@ String httpGET(String path) {
 }
 
 void retrieveCatalogInformationViaREST() {
-  // 1) Retrieve broker configuration from the Catalog.
+  // Retrieves broker conf from the Catalog.
   String brokerBody = httpGET("/broker");
   if (brokerBody.length() > 0) {
     StaticJsonDocument<256> brokerDoc;
@@ -175,8 +170,7 @@ void retrieveCatalogInformationViaREST() {
     }
   }
 
-  // 2) Retrieve current available devices/services. This satisfies the REST discovery step
-  // and is useful for debugging the Catalog content from the Arduino serial monitor.
+  // 2) Retrieve current available devices/services
   String devicesBody = httpGET("/devices");
   if (DEBUG && devicesBody.length() > 0) {
     Serial.print("[Catalog] Current devices: ");
@@ -282,8 +276,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
     int value = -1;
 
-    // SenML command format used in Exercise 3.3:
-    // {"bn":"...","e":[{"n":"led","v":1}]}
+    // SenML command {"bn":"...","e":[{"n":"led","v":1}]}
     if (doc_rec.containsKey("e")) {
       const char* commandName = doc_rec["e"][0]["n"];
       if (commandName != NULL && strcmp(commandName, "led") == 0) {
@@ -291,7 +284,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
       }
     }
 
-    // Also accept a simpler JSON command, useful for manual tests:
     // {"led":1}
     if (value == -1 && doc_rec.containsKey("led")) {
       value = doc_rec["led"].as<int>();
@@ -323,7 +315,7 @@ void reconnect() {
       Serial.print("[MQTT] Subscribed to Catalog ACK topic: ");
       Serial.println(ACK_DEVICE_TOPIC);
 
-      // Initial MQTT registration on the Catalog bridge.
+      // init MQTT reg on the Catalog bridge.
       publishDeviceProfile(REGISTRATION_DEVICES_TOPIC);
       lastRegistrationRenewal = millis();
     } else {
@@ -370,7 +362,7 @@ void loop() {
 
   unsigned long now = millis();
 
-  // Temperature publishing every 10 seconds.
+  // Temperature pub evry 10 sec
   if (now - lastTemperaturePublish >= TEMP_PERIOD_MS) {
     lastTemperaturePublish = now;
 
@@ -387,7 +379,7 @@ void loop() {
     client.publish(LOG_TOPIC.c_str(), payload.c_str());
   }
 
-  // Registration renewal every 1 minute.
+  // Registration refresh
   if (now - lastRegistrationRenewal >= REGISTRATION_RENEWAL_MS) {
     lastRegistrationRenewal = now;
     publishDeviceProfile(REFRESH_DEVICE_TOPIC);

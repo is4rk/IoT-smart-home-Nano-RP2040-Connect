@@ -1,4 +1,4 @@
-# Exercise 2 and 3: Smart Home Sensor and Actuator Service, with catalog implementation
+# Exercise 2, 3 and 6: Smart Home Sensor and Actuator Service, with catalog implementation, 
 import cherrypy
 import json
 import time

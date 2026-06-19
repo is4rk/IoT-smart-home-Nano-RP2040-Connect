@@ -1,3 +1,4 @@
+#lab 2 ex 7
 import paho.mqtt.client as PahoMQTT
 import json
 import requests

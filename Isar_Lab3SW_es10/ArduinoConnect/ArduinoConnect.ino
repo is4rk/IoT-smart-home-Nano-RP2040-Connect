@@ -6,7 +6,7 @@
 #include <MBED_RPi_Pico_TimerInterrupt.h>
 #include <list>
 #define DEBUG 1
-#define USERNAME "arduino"
+#define USERNAME "ardsssssfwafsdk;gjasdoadsjgjsadgpingpdsauino"
 #define BASE_NAME "ArduinoGroup1"
 #define HOST_NAME "10.35.244.215" //set to server ip
 #define PORT_NUMB 8080
@@ -71,10 +71,11 @@ void refreshReg(uint allarm_num){
 
 // WiFi declarations:
 WiFiClient wifi;
+WiFiClient mqttwifi;
 int status = WL_IDLE_STATUS;
 // The PubSubClient uses the WiFiClient to handle reception/transmission
 // It also needs the broker address and port, the callback function reference 
-PubSubClient client(wifi);
+PubSubClient client(mqttwifi);
 
 // Flexible SenML encoder funsction using ArduinoJson
 template <typename T>
@@ -105,6 +106,7 @@ int GET(String& body, String path){
 	http.endRequest();
 	int response = http.responseStatusCode();
 	body = http.responseBody();
+	http.stop();
 	return response;
 }
 
@@ -196,6 +198,13 @@ void reconnect() {
 			Serial.println(broker_port);
 		}
 		Serial.println("3.1");
+		Serial.println(broker_address);
+		Serial.println(broker_port);
+		Serial.println(USERNAME);
+		Serial.println(client.state());
+
+
+
 		// Try connecting to the broker with username [USERNAME] 
 		if(client.connect(USERNAME)) {
 					Serial.println("3.2");

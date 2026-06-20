@@ -1,0 +1,420 @@
+# Exercise 11: Publisher commanding the led on arduino and the actuators on the smar home service
+import constants
+import paho.mqtt.client as PahoMQTT
+import threading
+import json
+import requests
+import time
+from CatalogClient import CatalogClient
+
+DEBUG = False
+
+# More compact in the long term 
+def debug_print(message):
+    if DEBUG:
+        print(message)
+
+
+class MQTTActuatorCommandPublisher:
+
+    def __init__(self, clientID, url):
+        self.clientID = clientID
+        self.client = PahoMQTT.Client(client_id=clientID) #ex command_pub_001
+        self.url= url
+
+        #getting broker infos using a CatalogClient
+        self.catalogCli = CatalogClient(url)
+        response = self.catalogCli.get_broker()
+        metadata = response.json() if hasattr(response, 'json') else response
+        self.broker = metadata["ip"]
+        self.port = metadata["port"]
+        
+        self.running = False #useful for the parallel thread
+
+        self.client.on_connect = self.on_connect  # sets the function called when the bridge connects to the broker
+        self.client.on_message = self.on_message  # sets the function called when the bridge receives a message        
+
+    # dict values to list 
+    def _catalog_values(self, catalog_section):
+        if isinstance(catalog_section, dict):
+            return list(catalog_section.values())
+        return catalog_section or []
+
+    # get Arduino from catalog
+    def _find_arduino_device(self, devices):
+        for device in devices:
+            mqtt = device.get("mqtt", {})
+            topics = mqtt.get("sub_topics", []) + mqtt.get("pub_topics", [])
+            resources = device.get("resources", [])
+            if "arduino" in device.get("id", "").lower():
+                return device
+            if "led" in resources or any("led" in topic for topic in topics):
+                return device
+        return None
+
+    # get actuator service from catalog
+    def _find_actuator_service(self, services):
+        for service in services:
+            mqtt = service.get("mqtt", {})
+            topics = mqtt.get("sub_topics", []) + mqtt.get("pub_topics", [])
+            if "actuator" in service.get("id", "").lower():
+                return service
+            if any("actuator" in topic for topic in topics):
+                return service
+        return None
+
+    # get the first topic containing a specific word
+    def _first_topic_containing(self, registration, direction, word):
+        mqtt = registration.get("mqtt", {})
+        topics = mqtt.get(direction, [])
+        return next((topic for topic in topics if word in topic), None)
+
+    def start(self): 
+        self.client.connect(self.broker, self.port, keepalive=60)  # it connects to the MQTT broker
+        self.client.loop_start() 
+
+        arduino_device = None
+        actuator_service = None
+        
+        # look for infos needed in catalog
+        while not arduino_device:
+            devices = self._catalog_values(self.catalogCli.get_devices())
+            services = self._catalog_values(self.catalogCli.get_services())
+            
+            arduino_device = self._find_arduino_device(devices)
+            actuator_service = self._find_actuator_service(services)
+            
+            if not arduino_device:
+                print("Waiting for Arduino device to register...")
+                time.sleep(5)
+        
+        # get topics needed from the catalog
+        ARDUINO_LED_COMMAND_TOPIC = self._first_topic_containing(arduino_device, "sub_topics", "led")
+        ARDUINO_LED_FEEDBACK_TOPIC = self._first_topic_containing(arduino_device, "pub_topics", "feedback")
+
+        if not ARDUINO_LED_COMMAND_TOPIC:
+            raise RuntimeError("Arduino device registered without a LED command topic")
+
+        ACTUATOR_COMMAND_TOPIC = None
+        ACTUATOR_FEEDBACK_TOPIC = None
+        if actuator_service:
+            ACTUATOR_COMMAND_TOPIC = self._first_topic_containing(actuator_service, "sub_topics", "command")
+            ACTUATOR_FEEDBACK_TOPIC = self._first_topic_containing(actuator_service, "pub_topics", "feedback")
+
+        # subscribe to feedback topics
+        if ARDUINO_LED_FEEDBACK_TOPIC:
+            self.client.subscribe(ARDUINO_LED_FEEDBACK_TOPIC, 0)
+            print(f"[MQTT Command Publisher] Subscribed to {ARDUINO_LED_FEEDBACK_TOPIC}")
+        if ACTUATOR_FEEDBACK_TOPIC:
+            self.client.subscribe(ACTUATOR_FEEDBACK_TOPIC, 0)
+            print(f"[MQTT Command Publisher] Subscribed to {ACTUATOR_FEEDBACK_TOPIC}")
+
+        # initialize a parallel thread to refresh the service
+        self.running = True
+        refresh_thread = threading.Thread( #you can not save the variable to the class, casue its a Daemon thread and cause the threading module keeps track of it
+            target=self.loopRefresh,
+            args=(
+                ARDUINO_LED_COMMAND_TOPIC,
+                ACTUATOR_COMMAND_TOPIC,
+                ARDUINO_LED_FEEDBACK_TOPIC,
+                ACTUATOR_FEEDBACK_TOPIC
+            ),
+            daemon=True
+        )
+        
+        refresh_thread.start()
+
+        # start the loop to ask commands
+        self.commandLineLoop(ARDUINO_LED_COMMAND_TOPIC, ACTUATOR_COMMAND_TOPIC, ARDUINO_LED_FEEDBACK_TOPIC, ACTUATOR_FEEDBACK_TOPIC)
+
+        self.stop(ARDUINO_LED_FEEDBACK_TOPIC, ACTUATOR_FEEDBACK_TOPIC)
+
+
+    def on_connect(self, client, userdata, flags, rc): # it will handles the action when the bridge connect to the broker
+        debug_print(f"[MQTT command Publisher ] Connected with result code {rc}")  # prints the connection result
+
+    # stop the service when asked from menu
+    def stop(self, feedbackTopicArduino, feedbackTopicActuator):
+        if feedbackTopicArduino:
+            self.client.unsubscribe(feedbackTopicArduino)
+        if feedbackTopicActuator:
+            self.client.unsubscribe(feedbackTopicActuator)
+        self.running = False
+        self.client.loop_stop()
+        self.client.disconnect()
+    
+    # loop to ask commands to the user, and send them to the broker
+    def commandLineLoop(self, commandTopicArduino, commandTopicActuator, feedbackTopicArduino, feedbackTopicActuator):
+
+        print(" CLI del Command Publisher. " \
+        "\nComandi supportati:" \
+        "\n* led <0|1>" \
+        "\n* lights <room> <0|1>" \
+        "\n* thermostat <room> <value>" \
+        "\n* blinds <room> <0-100>" \
+        "\n* Q to quit\n")
+       
+        
+        while True:
+            deviceType = input("Actuator or Arduino? ").strip().lower()
+
+            # q = quit
+            if deviceType == "q":
+                print("Exiting Command Publisher CLI.")
+                break
+            
+            # case actuator
+            elif deviceType == "actuator":
+                if commandTopicActuator is None:
+                    print("No actuator service registered. Use Arduino commands for now.\n")
+                    continue
+
+                line = input("Insert valid Actuator Command:\n").strip()
+
+                if line.upper() == "Q":
+                    print("Exiting Command Publisher CLI.")
+                    break
+
+                parts = line.split()
+
+                if len(parts) == 0:
+                    print("Invalid command: empty command.\n")
+                    continue
+
+                # now check if it is a command and if it is valid
+                command = parts[0].lower()
+
+                # LIGHTS <room> <0|1>
+                if command == "lights":
+                    if len(parts) != 3:
+                        print("Invalid lights command. Use: lights <room> <0|1>\n")
+                        continue
+
+                    room = parts[1]
+                    value = parts[2]
+
+                    if room not in constants.rooms: #constants.rooms defined in constants
+                        print(f"Invalid room: {room}. Valid constants.rooms: {constants.rooms}\n")
+                        continue
+
+    
+                    if value not in ["0","1"]:
+                        print("Invalid lights value. Use 0 or 1.\n")
+                        continue
+
+                    payload = self.buildCommand(
+                        target="lights",
+                        room=room,
+                        value=value,
+                        unit= "int"
+                    )
+
+                    self.client.publish(commandTopicActuator, json.dumps(payload), qos=0)
+
+                # THERMOSTAT <room> <value>
+                elif command == "thermostat":
+                    if len(parts) != 3:
+                        print("Invalid thermostat command. Use: thermostat <room> <value>\n")
+                        continue
+
+                    room = parts[1]
+                    rawValue = parts[2]
+
+                    if room not in constants.rooms:
+                        print(f"Invalid room: {room}. Valid constants.rooms: {constants.rooms}\n")
+                        continue
+
+                    try:
+                        value = float(rawValue)
+                    except ValueError:
+                        print("Invalid thermostat value. Use a numeric value.\n")
+                        continue
+
+                    if value < 10 or value > 30:
+                        print("Invalid thermostat value. Use a value between 10 and 30 °C.\n")
+                        continue
+
+                    payload = self.buildCommand(
+                        target="thermostat",
+                        room=room,
+                        value=value,
+                        unit="Cel"
+                    )
+
+                    self.client.publish(commandTopicActuator, json.dumps(payload), qos=0)
+
+                # BLINDS <room> <0-100>
+                elif command == "blinds":
+                    if len(parts) != 3:
+                        print("Invalid blinds command. Use: blinds <room> <0-100>\n")
+                        continue
+
+                    room = parts[1]
+                    rawValue = parts[2]
+
+                    if room not in constants.rooms:
+                        print(f"Invalid room: {room}. Valid constants.rooms: {constants.rooms}\n")
+                        continue
+
+                    try:
+                        value = int(rawValue)
+                    except ValueError:
+                        print("Invalid blinds value. Use an integer between 0 and 100.\n")
+                        continue
+
+                    if value < 0 or value > 100:
+                        print("Invalid blinds value. Use a value between 0 and 100.\n")
+                        continue
+
+                    payload = self.buildCommand(
+                        target="blinds",
+                        room=room,
+                        value=value,
+                        unit = "int"
+                    )
+                    self.client.publish(commandTopicActuator, json.dumps(payload), qos=0)
+
+                else:
+                    print(
+                        "Invalid actuator command.\n"
+                        "Use one of:\n"
+                        "- lights <room> <0|1>\n"
+                        "- thermostat <room> <value>\n"
+                        "- blinds <room> <0-100>\n"
+                    )
+
+            # case arduino
+            elif deviceType == "arduino":
+                line = input("Insert valid Arduino Command:\n").strip()
+
+                if line.upper() == "Q":
+                    print("Exiting Command Publisher CLI.")
+                    break
+
+                parts = line.split()
+
+                if len(parts) == 0:
+                    print("Invalid command: empty command.\n")
+                    continue
+                
+                # only led command for arduino
+                command = parts[0].lower()
+
+                # LED <0|1>
+                if command == "led":
+                    if len(parts) != 2:
+                        print("Invalid led command. Use: led <0|1>\n")
+                        continue
+
+                    value = parts[1]
+
+                    if value not in ["0","1"]:
+                        print("Invalid led value. Use 0 or 1.\n")
+                        continue
+
+                    payload = self.buildCommand(
+                        target="led",
+                        value=int(value),
+                        room=None,
+                        unit="bool"
+                    )
+                    self.client.publish(commandTopicArduino, json.dumps(payload), qos=0)
+                    
+                else:
+                    print(
+                        "Invalid Arduino command.\n"
+                        "Use:\n"
+                        "- led <0|1>\n"
+                    )
+
+            else:
+                print("Invalid choice. Type Actuator, Arduino, or Q.\n")
+
+    # translate command in a SenML format 
+    def buildCommand(self, target, value, room=None, unit=""):
+        resource_name = f"{room}/{target}/command" if room is not None else target
+
+        return {
+            "bn": self.clientID,
+            "e": [
+                {
+                    "t": int(time.time()),
+                    "n": resource_name,
+                    "v": value,
+                    "u": unit
+                }
+            ]
+        }
+
+        
+    def loopRefresh(self, commandTopicArduino, commandTopicActuator, feedbackTopicArduino, feedbackTopicActuator):
+        # Periodic refresh of Command Publisher on Catalog.
+        while self.running:
+            pub_topics = [topic for topic in [commandTopicArduino, commandTopicActuator] if topic]
+            sub_topics = [topic for topic in [feedbackTopicArduino, feedbackTopicActuator] if topic]
+
+            #building the record
+            service = {
+                "id": self.clientID,
+                "type": "command_publisher",
+                "description": "Service used to send manual commands to Arduino LED and Smart Home actuators",
+                "endpoint": None,
+                "mqtt": {
+                    "ip": self.broker,
+                    "port": self.port,
+                    # topic where commands are published
+                    "pub_topics": pub_topics,
+
+                    # topics where feedback are received
+                    "sub_topics": sub_topics
+                },
+                "resources": [
+                    "arduino_led_control",
+                    "lights_control",
+                    "thermostat_control",
+                    "blinds_control"
+                ],
+
+                "time": time.time()
+            }
+
+            try:
+                self.catalogCli.refresh_service(self.clientID, service)
+            except:
+                self.catalogCli.register_service(service)
+                
+            time.sleep(60)
+    
+    # feedback callback
+    def on_message(self, client, userdata, msg):
+        
+        print("\n[MQTT Command Publisher] Feedback received")
+        print(f"Topic: {msg.topic}")
+        payload = json.loads(msg.payload.decode("utf-8"))
+        print(json.dumps(payload))
+
+
+"""
+{
+    'bn' : 'ArduinoGroup1'
+    'e' : [{
+        'n' : 'led'
+        't': null
+        'v': 1
+        'u' null
+    }]
+}
+
+"""
+
+
+if __name__ == '__main__': # for testing
+    # URL matches the one defined in constants.py for the Catalog
+    catalog_url = constants.CATALOG_URL
+    
+    # Initialize and start the publisher
+    publisher = MQTTActuatorCommandPublisher("command_publisher_001", catalog_url)
+    try:
+        publisher.start()
+    except KeyboardInterrupt:
+        print("\nPublisher manually stopped.")

@@ -1,0 +1,262 @@
+# Exercise 4 and 12: Event Log Service which implements both REST and MQTT, so that both REST services and MQTT clients
+# are able to interact with this.
+
+import cherrypy
+import json
+import time
+import paho.mqtt.client as PahoMQTT
+from CatalogClient import CatalogClient
+from threading import Lock, Thread
+from SmartHomeSensorService import controlSenML
+from constants import *
+
+queries = ["room", "since", "before", "type"]
+
+class EventLog():
+    exposed = True
+    
+    # Init of the class
+    def __init__(self, clientID="event_log"):
+        self.clientID = clientID
+        self.logs = []
+        self.next_id = 1
+
+        #MQTT thread attributes and useful things
+        self.lock = Lock()
+        self.catalog_url = CATALOG_URL
+        self.broker = BROKER
+        self.port = PORT
+        self.mqtt_started = False
+        self.interval = 60
+        self.ack = False
+        self.client = PahoMQTT.Client(client_id=self.clientID)
+        self.client.on_connect = self.on_connect
+        self.client.on_message = self.on_message
+        self.last_response=None
+
+        # Start MQTT thread when creating the object
+        self.start()
+
+    # MQTT
+
+    # Start connection to the broker, start listening and start thread
+    def start(self):
+        self.client.connect(self.broker, self.port, keepalive=60)
+        self.client.loop_start()
+        Thread(target=self.loopRefresh, daemon=True).start()
+
+    # Thread loop to refresh registration to the catalog
+    def loopRefresh(self):
+        print("[EventLog] Refresh loop started.")
+        while True:
+            time.sleep(self.interval)
+            try:
+                service = self.build_service_payload()
+                CatalogClient(CATALOG_URL).refresh_service(self.clientID, service)
+                print("[EventLog] Service refreshed on Catalog.")
+            except Exception as e:
+                print(f"[EventLog] Refresh failed: {e}")
+
+    # Stop MQTT 
+    def stop(self):
+        self.client.loop_stop()
+        self.client.disconnect()
+
+    # On connect callback, register to catalog and subscribes to log topic to listen incoming MQTT log messages
+    def on_connect(self, client, userdata, flags, rc):
+        service = self.build_service_payload()
+        self.client.publish(REGISTRATION_SERVICES_TOPIC, json.dumps(service))
+        self.client.subscribe(f"{BASE_TOPIC}/log")
+    
+    # On message callback, handles the message to try extract SenML informations
+    def on_message(self, client, userdata, msg):
+        raw = msg.payload
+        # Lots of decode to read the data properly
+        if isinstance(raw, (bytes, bytearray)):
+            try:
+                raw = raw.decode("utf-8")
+            except Exception:
+                return
+
+        try:
+            while isinstance(raw, str):
+                raw = json.loads(raw)
+        except Exception:
+            return
+
+        # Check if it's a single SenML entry or a list
+        records = []
+        if isinstance(raw, dict):
+            records = [raw]
+        elif isinstance(raw, list):
+            records = raw
+        else:
+            return
+
+        # Check if valid SenML, then add it if ok
+        added = 0
+        for rec in records:
+            try:
+                if not controlSenML(rec):
+                    continue
+            except Exception:
+                continue
+
+            rec["bt"] = time.time()
+            with self.lock:
+                rec["log_id"] = str(self.next_id)
+                self.next_id += 1
+                self.logs.append(rec)
+                added += 1
+
+        if added:
+            self.last_response = f"Added {added} records from MQTT"
+
+    # Function to build the catalog registration payload
+    def build_service_payload(self):
+        return {
+            "id": self.clientID,
+            "description": "Event Log Service",
+            "endpoint": f"http://{HOST_NAME}:{PORT}/log",
+            "mqtt": {
+                "ip": self.broker,
+                "port": self.port,
+                "pub_topics": [],
+                "sub_topics": [f"{BASE_TOPIC}/log"]
+            },
+            "resources": ["event_log", "temperature", "humidity", "motion"],
+            "time": time.time()
+        }
+
+    # REST 
+
+    # GET handler, can be all logs or queried
+    def GET(self, *path, **query):
+        # requesting all logs or filtering by query
+        if (len(path) == 0):
+            # GET /log
+            if (len(query) == 0):
+                # There is a thread, if list is used to a copy or lock
+                with self.lock:
+                    snapshot = list(self.logs)
+                return json.dumps(snapshot)
+
+            # GET /log?<query>
+            for q in query:
+                if q not in queries:
+                    raise cherrypy.HTTPError(404, "Bad query request.")
+
+            report = []
+            with self.lock:
+                snapshot = list(self.logs)
+
+            # This is the query checking and handling
+            for event in snapshot:
+                keep = True
+                for q in query:
+                    match q:
+                        case "room":
+                            if not (event["bn"].startswith("/sensor/" + query["room"]) or event["bn"].startswith("/" + query["room"])):
+                                keep = False
+                        case "since":
+                            if float(event["bt"]) < float(query["since"]):
+                                keep = False
+                        case "before":
+                            if float(event["bt"]) >= float(query["before"]):
+                                keep = False
+                        case "type":
+                            if event["e"][0]["n"] != query["type"]:
+                                keep = False
+
+                if keep:
+                    report.append(event)
+
+            return json.dumps(report)
+        
+        # checking all logs of a specific room
+        # GET /log/<room>
+        elif (len(path) == 1):
+            report = []
+            with self.lock:
+                snapshot = list(self.logs)
+
+            for event in snapshot:
+                if event["bn"].startswith("/sensor/" + path[0]) or event["bn"].startswith("/" + path[0]):
+                    report.append(event)
+
+            return json.dumps(report)
+
+        # Error handling 
+        raise cherrypy.HTTPError(400, "Bad request: no services avaliable")
+    
+    # POST: appending one or more SenML events in the log
+    def POST(self, *path):
+        # even here there is decoding and data validation
+        # POST /log
+        if(len(path) == 0):
+            raw = cherrypy.request.body.read()
+            if isinstance(raw, (bytes, bytearray)):
+                try:
+                    raw = raw.decode("utf-8")
+                except Exception:
+                    raise cherrypy.HTTPError(422, "Wrong data fromat.")
+
+            try:
+                while isinstance(raw, str):
+                    raw = json.loads(raw)
+            except Exception:
+                raise cherrypy.HTTPError(422, "Wrong data fromat.")
+
+            records = []
+            if isinstance(raw, dict):
+                records = [raw]
+            elif isinstance(raw, list):
+                records = raw
+            else:
+                raise cherrypy.HTTPError(422, "Wrong data fromat.")
+
+            added = 0
+            for rec in records:
+                if not isinstance(rec, dict) or not controlSenML(rec):
+                    raise cherrypy.HTTPError(422, "Wrong data fromat.")
+                rec["bt"] = time.time()
+                with self.lock:
+                    rec["log_id"] = str(self.next_id)
+                    self.next_id += 1
+                    self.logs.append(rec)
+                    added += 1
+
+            return ("Events registered: " + str(added))
+        else:
+            raise cherrypy.HTTPError(400, "Bad request: no services avaliable")
+    
+    # DELETE: delete all logs or logs before a value
+    def DELETE(self, *path, **query):
+        if (len(path) == 0):
+            # purging entries before a defined epoch
+            # DELETE /log?before=<epoch>
+            if(len(query) == 1):
+                count = 0
+                # checking if the query is "before"
+                if "before" not in query:
+                    raise cherrypy.HTTPError(400, "Bad request: no services avaliable")
+                
+                with self.lock:
+                    initial_count = len(self.logs)
+                    before_epoch = float(query["before"])
+                    # Atomic operation on the list filtering the events before the query
+                    self.logs = [event for event in self.logs if float(event["bt"]) >= before_epoch]
+                    count = initial_count - len(self.logs)
+                    return f"Entries deleted: {count}"
+            # purging all entries
+            # DELETE /log
+            elif (len(query) == 0):
+                with self.lock:
+                    count = len(self.logs)
+                    self.logs = []
+                return str(count)
+            else:
+                raise cherrypy.HTTPError(400, "Bad request: no services avaliable")
+        else:
+            raise cherrypy.HTTPError(400, "Bad request: no services avaliable")
+    

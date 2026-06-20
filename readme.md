@@ -1,5 +1,5 @@
 To use this on an actual arduino nano RP2040 connect, upload the .ino from exercise 10. and make it run. Then on a pc, run the main.py, (runs MQTT, REST and Log). 
-The parameters that need changing are in constants.py (ip adress and port number), put the same ones in the arduino file. Remeber to also generate an arduino_secretes.h with wifi name and password.
+The parameters that need changing are in constants.py (ip address and port number), put the same ones in the arduino file. Remeber to also generate an arduino_secretes.h with wifi name and password.
 For any bugs, open an issue.
 
 Exercise 0:
